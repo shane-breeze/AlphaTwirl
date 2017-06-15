@@ -68,7 +68,7 @@ class MultiprocessingDropbox(object):
         messages = sorted(messages, key = itemgetter(0))
 
         results = [result for task_idx, result in messages]
-        return results
+        return results, None
 
     def close(self):
         for i in xrange(self.n_workers):
