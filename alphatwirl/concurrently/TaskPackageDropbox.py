@@ -82,22 +82,25 @@ class TaskPackageDropbox(object):
             logger.warning('received KeyboardInterrupt')
             self.dispatcher.terminate()
 
-        cwd = os.getcwd()
-        os.chdir(os.path.join(cwd, self.workingArea.path, "results"))
-        self.hadd_files()
-        os.chdir(cwd)
-
         # sort in the order of package_index
         pkgidx_result_pairs = sorted(pkgidx_result_pairs, key = itemgetter(0))
+
+        cwd = os.getcwd()
+        os.chdir(os.path.join(cwd, self.workingArea.path, "results"))
+        self.hadd_files(pkgidx_result_pairs)
+        os.chdir(cwd)
 
         results = [result for i, result in pkgidx_result_pairs]
         return results, self.workingArea.path
 
-    def hadd_files(self):
+    def hadd_files(self, pkgidx_result_pairs=None):
+        task_paths = ['task_{:05d}'.format(package_id) for package_id,_ in pkgidx_result_pairs]
         rootfiles = list(set(map(os.path.basename, glob.glob("*/*.root"))))
         for rootfile in rootfiles:
-            files_to_hadd = glob.glob("*/{}".format(rootfile))
-            if len(files_to_hadd) == 1:
+            files_to_hadd = filter(lambda p: p.split('/')[0] in task_paths, glob.glob("*/{}".format(rootfile)))
+            if len(files_to_hadd) == 0:
+                continue
+            elif len(files_to_hadd) == 1:
                 commands = ["cp", files_to_hadd[0], rootfile]
             else:
                 commands = ["hadd", rootfile] + files_to_hadd
