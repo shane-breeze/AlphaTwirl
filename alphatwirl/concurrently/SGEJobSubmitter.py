@@ -20,10 +20,11 @@ SGE_JOBSTATUS = {
 
 ##__________________________________________________________________||
 class SGEJobSubmitter(object):
-    def __init__(self):
+    def __init__(self, time=1800):
         self.job_desc_template = "qsub -o {out} -e {error} -cwd -V -q hep.q -l h_rt={time} {job_script}"
         self.clusterids_outstanding = [ ]
         self.clusterids_finished = [ ]
+        self.time = time
 
     def run(self, workingArea, package_index):
         cwd = os.getcwd()
@@ -43,7 +44,7 @@ class SGEJobSubmitter(object):
             job_script = 'job_script.sh',
             out = os.path.join(resultdir, 'stdout.txt'),
             error = os.path.join(resultdir, 'stderr.txt'),
-            time = "1800",
+            time = self.time,
         )
 
         os.system("echo \"python {job_script} {args}\" > job_script.sh".format(
