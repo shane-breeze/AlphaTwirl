@@ -3,11 +3,12 @@
 ##__________________________________________________________________||
 import os
 import re
+import fnmatch
 from .Component import Component
 from .ReadVersionInfo import ReadVersionInfo
 
 ##__________________________________________________________________||
-DEFAULT_EXCLUDE_LIST = ['Chunks', 'failed']
+DEFAULT_EXCLUDE_LIST = ['Chunks', 'failed', '_*']
 DEFAULT_COMPONENT_HAS_THESE_FILES = ['config.pck', 'config.txt']
 
 ##__________________________________________________________________||
@@ -69,7 +70,7 @@ class IsComponent(object):
 
     def __call__(self, path):
         if not os.path.isdir(path): return False
-        if os.path.basename(path) in self.excludeList: return False
+        if any(lambda excl: fnmatch.fnmatch(os.path.basename(path), excl), self.excludeList): return False
         if not set(self.componentHasTheseFiles).issubset(set(os.listdir(path))): return False
         return True
 

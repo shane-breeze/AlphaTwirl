@@ -1,6 +1,7 @@
 # Tai Sakuma <tai.sakuma@cern.ch>
 
 from .splitfuncs import create_file_start_length_list
+from exceptions import AttributeError
 
 ##__________________________________________________________________||
 class DatasetIntoEventBuildersSplitter(object):
@@ -78,7 +79,11 @@ class DatasetIntoEventBuildersSplitter(object):
         for f in files:
             if 0 <= maxEvents <= totalEvents:
                 return ret
-            n = self.eventBuilderConfigMaker.nevents_in_file(f)
+            try:
+                n = self.eventBuilderConfigMaker.nevents_in_file(f)
+            except AttributeError:
+                print "\n\nERROR with file: ", f, "\n\n"
+                continue
             ret.append((f, n))
             totalEvents += n
         return ret
