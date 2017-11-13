@@ -32,7 +32,6 @@ class HeppyResult(object):
         self.path = os.path.normpath(path)
         self.isComponent = IsComponent(excludeList, componentHasTheseFiles) if isComponent is None else isComponent
         allComponentNames = [n for n in os.listdir(self.path) if self.isComponent(os.path.join(self.path, n))]
-        print "BEK", allComponentNames
         allComponentNames = sorted(allComponentNames, key = lambda n: [float(c) if c.isdigit() else c for c in re.findall('\d+|\D+', n)])
         if componentNames is not None:
             nonexistentComponent =  [c for c in componentNames if c not in allComponentNames]
