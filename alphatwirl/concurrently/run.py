@@ -55,7 +55,7 @@ def print_logs(error):
         '{:>20}: {}'.format('hostname', socket.getfqdn()),
         '{:>20}: {}'.format('pwd', os.getcwd()),
         '{:>20}: {}'.format('ls', ', '.join(sorted(os.listdir(os.getcwd())))),
-        '{:>20}: {}'.format('sys.path', ', '.join(sys.path)),
+        #'{:>20}: {}'.format('sys.path', ', '.join(sys.path)),
         '{:>20}: {}'.format('os.environ', os.environ)
 
     ]
