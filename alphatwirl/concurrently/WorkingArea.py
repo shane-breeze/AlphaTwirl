@@ -7,6 +7,7 @@ import imp
 import logging
 import tarfile
 import gzip
+from fnmatch import fnmatch
 
 try:
    import cPickle as pickle
@@ -21,11 +22,14 @@ class WorkingArea(object):
 
     """
 
-    def __init__(self, dir, python_modules):
+    def __init__(self, dir, python_modules, exclusions=None):
         self.topdir = dir
         self.python_modules = python_modules
         self.path = None
         self.last_package_index = None
+        self.exclusions = set(["*/.git/*", "*.pyc"])
+	if exclusions:
+		self.exclusions.update(exclusions)
 
     def __repr__(self):
         return '{}(topdir = {!r}, python_modules = {!r}, path = {!r}, last_package_index = {!r})'.format(
@@ -102,10 +106,8 @@ class WorkingArea(object):
         tar = tarfile.open(os.path.join(self.path, 'python_modules.tar.gz'), 'w:gz')
 
         def tar_filter(tarinfo):
-            exclude_extensions = ('.pyc', )
-            exclude_names = ('.git', )
-            if os.path.splitext(tarinfo.name)[1] in exclude_extensions: return None
-            if os.path.basename(tarinfo.name) in exclude_names: return None
+	    if any(fnmatch(tarinfo.name, excl) for excl in self.exclusions):
+		    return None
             return tarinfo
 
         for module in modules:
