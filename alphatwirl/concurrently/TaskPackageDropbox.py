@@ -4,6 +4,7 @@ import time
 import os
 import glob
 import subprocess
+import pandas as pd
 from operator import itemgetter
 
 from .WorkingArea import WorkingArea
@@ -113,6 +114,23 @@ class TaskPackageDropbox(object):
             logger = logging.getLogger(__name__)
             logger.info(" ".join(commands))
             out, err = proc.communicate()
+
+        dffiles = list(set(map(os.path.basename, glob.glob("*/*.txt"))))
+        dffiles = filter(lambda x: x not in ["stderr.txt", "stdout.txt"], dffiles)
+        for dffile in dffiles:
+            files_to_hadd = filter(lambda p: p.split('/')[0] in task_paths, glob.glob("*/{}".format(dffile)))
+            if len(files_to_hadd) == 0:
+                continue
+            else:
+                self.hadd_dataframes(files_to_hadd, dffile)
+
+    def hadd_dataframes(self, files_to_hadd, dffile):
+        dfs = [pd.read_table(filename, sep='\s+') for filename in files_to_hadd]
+        df = reduce(lambda x,y: x+y, [df.groupby("name", sort=False).sum() for df in dfs]).reset_index()
+        with open(dffile, 'w') as f:
+            logger = logging.getLogger(__name__)
+            logger.info("Create dataframe in {}".format(dffile))
+            f.write(df.to_string())
 
     def close(self):
         self.dispatcher.terminate()
