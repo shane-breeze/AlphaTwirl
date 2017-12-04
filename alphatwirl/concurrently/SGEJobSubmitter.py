@@ -20,7 +20,7 @@ SGE_JOBSTATUS = {
 
 ##__________________________________________________________________||
 class SGEJobSubmitter(object):
-    def __init__(self, time=1800):
+    def __init__(self, time=10800):
         self.job_desc_template = "qsub -o {out} -e {error} -cwd -V -q hep.q -l h_rt={time} {job_script}"
         self.clusterids_outstanding = [ ]
         self.clusterids_finished = [ ]
