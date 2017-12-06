@@ -60,4 +60,25 @@ class Branch(object):
         if self.countarray is None: return 1
         return self.countarray[0]
 
+    def skim_indices(self, indices):
+        if self.countarray is None:
+            return
+        for i, idx in enumerate(indices):
+            if i!=idx:
+                self.array[i] = self.array[idx]
+        self.countarray[0] = len(indices)
+
+    def pop(self, i):
+        if self.countarray is None:
+            raise NotImplementedError('cannot pop a value')
+        if self.countarray is not None and i >= self.countarray[0]:
+            print self.array
+            print self.countarray
+            raise IndexError('the index is out of range: {}[{}]'.format(self.name, i))
+        for idx in range(i, self.countarray[0]):
+            self.array[idx] = self.array[idx+1]
+
+    def set_count(self, count):
+        self.countarray[0] = count
+
 ##__________________________________________________________________||
