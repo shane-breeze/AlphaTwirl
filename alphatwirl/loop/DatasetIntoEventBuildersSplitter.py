@@ -82,7 +82,9 @@ class DatasetIntoEventBuildersSplitter(object):
             try:
                 n = self.eventBuilderConfigMaker.nevents_in_file(f)
             except AttributeError:
-                print "\n\nERROR with file: ", f, "\n\n"
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error("Problem with file: " + str(f))
                 continue
             ret.append((f, n))
             totalEvents += n
