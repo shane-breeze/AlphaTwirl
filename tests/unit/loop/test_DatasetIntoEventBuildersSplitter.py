@@ -44,7 +44,7 @@ class MockEventBuilderConfigMaker(object):
 
     def nevents_in_file(self, path):
         if self.raise_AttributeError:
-            raise AttributeError, "Dummy attribute error"
+            raise AttributeError("Dummy attribute error")
         return self.ret_nevents_in_file.popleft()
 
     def create_config_for(self, dataset, file_, start, length):
