@@ -1,7 +1,6 @@
 # Tai Sakuma <tai.sakuma@gmail.com>
 
 from .splitfuncs import create_file_start_length_list
-from exceptions import AttributeError
 
 ##__________________________________________________________________||
 class DatasetIntoEventBuildersSplitter(object):
