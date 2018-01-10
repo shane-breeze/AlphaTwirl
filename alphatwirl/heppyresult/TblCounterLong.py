@@ -1,4 +1,4 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
+# Tai Sakuma <tai.sakuma@gmail.com>
 import os
 
 from ..misc import mkdir_p
@@ -49,7 +49,7 @@ class TblCounterLong(object):
 
     def end(self):
         f = self._open(self._outPath)
-        f.write(list_to_aligned_text(self._rows))
+        f.write(list_to_aligned_text(self._rows).encode())
         self._close(f)
 
     def _open(self, path):

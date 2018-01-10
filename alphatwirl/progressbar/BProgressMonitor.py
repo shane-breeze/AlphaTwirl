@@ -1,4 +1,4 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
+# Tai Sakuma <tai.sakuma@gmail.com>
 from .ProgressReporter import ProgressReporter
 from .ProgressReportPickup import ProgressReportPickup
 
@@ -79,6 +79,6 @@ class BProgressMonitor(object):
         self.pickup.join()
 
     def createReporter(self):
-        return ProgressReporter(self.queue)
+        return ProgressReporter(queue = self.queue)
 
 ##__________________________________________________________________||

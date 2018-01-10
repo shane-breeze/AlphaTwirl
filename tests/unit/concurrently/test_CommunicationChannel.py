@@ -1,131 +1,110 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
-import unittest
-import collections
+# Tai Sakuma <tai.sakuma@gmail.com>
 import logging
+import pytest
+
+try:
+    import unittest.mock as mock
+except ImportError:
+    import mock
 
 from alphatwirl.concurrently import CommunicationChannel, TaskPackage
 
 ##__________________________________________________________________||
-MockTask = collections.namedtuple('MockTask', 'name')
-MockResult = collections.namedtuple('MockResult', 'name')
+@pytest.fixture()
+def dropbox():
+    return mock.MagicMock()
+
+@pytest.fixture()
+def obj(dropbox):
+    return CommunicationChannel(dropbox = dropbox)
 
 ##__________________________________________________________________||
-class MockDropbox(object):
-    def __init__(self):
-        self.nopened = 0
-        self.nclosed = 0
-        self.packages = [ ]
-        self.result = None
+def test_repr(obj):
+    repr(obj)
 
-    def open(self):
-        self.nopened += 1
+def test_begin_end(obj, dropbox):
 
-    def put(self, package):
-        self.packages.append(package)
+    dropbox.open.assert_not_called()
+    dropbox.close.assert_not_called()
 
-    def receive(self):
-        return self.result
+    obj.begin()
+    dropbox.open.assert_called_once()
+    dropbox.close.assert_not_called()
 
-    def close(self):
-        self.nclosed += 1
+    obj.begin()
+    dropbox.open.assert_called_once() # don't open twice
+    dropbox.close.assert_not_called()
 
-##__________________________________________________________________||
-class MockProgressReporter(object): pass
+    obj.end()
+    dropbox.open.assert_called_once()
+    dropbox.close.assert_called_once()
 
-##__________________________________________________________________||
-class MockProgressMonitor(object):
-    def __init__(self):
-        self.reporters = [ ]
+    obj.end()
+    dropbox.open.assert_called_once()
+    dropbox.close.assert_called_once() # don't close twice
 
-    def createReporter(self):
-        reporter = MockProgressReporter()
-        self.reporters.append(reporter)
-        return reporter
+    obj.begin()
+    assert 2 == dropbox.open.call_count # can open again
+    dropbox.close.assert_called_once()
 
-##__________________________________________________________________||
-class TestCommunicationChannel(unittest.TestCase):
+def test_put(obj, dropbox):
 
-    def test_repr(self):
-        dropbox = MockDropbox()
-        obj = CommunicationChannel(dropbox = dropbox)
-        repr(obj)
+    obj.begin()
 
-    def test_begin_end(self):
-        dropbox = MockDropbox()
-        obj = CommunicationChannel(dropbox = dropbox)
+    task1 = mock.MagicMock(name = 'task1')
+    obj.put(task1)
 
-        self.assertEqual(0, dropbox.nopened)
-        self.assertEqual(0, dropbox.nclosed)
+    task2 = mock.MagicMock(name = 'task2')
+    obj.put(task2, 123, 'ABC', A = 34)
 
-        obj.begin()
-        self.assertEqual(1, dropbox.nopened)
-        self.assertEqual(0, dropbox.nclosed)
+    expected = [
+        mock.call(TaskPackage(task = task1, args = (), kwargs = {})),
+        mock.call(TaskPackage(task = task2, args = (123, 'ABC'), kwargs = {'A': 34})),
+    ]
+    dropbox.put.assert_has_calls(expected)
 
-        obj.begin()
-        self.assertEqual(1, dropbox.nopened) # don't open twice
-        self.assertEqual(0, dropbox.nclosed)
+    obj.end()
 
-        obj.end()
-        self.assertEqual(1, dropbox.nopened)
-        self.assertEqual(1, dropbox.nclosed)
+def test_receive(obj, dropbox):
 
-        obj.end()
-        self.assertEqual(1, dropbox.nopened)
-        self.assertEqual(1, dropbox.nclosed) # don't close twice
+    obj.begin()
 
-        obj.begin()
-        self.assertEqual(2, dropbox.nopened) # can open again
-        self.assertEqual(1, dropbox.nclosed)
+    result1 = mock.MagicMock(name = 'result1')
+    dropbox.receive = mock.MagicMock(return_value = result1)
 
+    assert result1 == obj.receive()
 
-    def test_put(self):
-        dropbox = MockDropbox()
-        obj = CommunicationChannel(dropbox = dropbox)
-        obj.begin()
+    obj.end()
 
-        task1 = MockTask('task1')
+def test_put_when_closed(obj, dropbox, caplog):
+
+    task1 = mock.MagicMock(name = 'task1')
+
+    with caplog.at_level(logging.WARNING, logger = 'alphatwirl'):
         obj.put(task1)
 
-        task2 = MockTask('task2')
-        obj.put(task2, 123, 'ABC', A = 34)
+    assert len(caplog.records) == 1
+    assert caplog.records[0].levelname == 'WARNING'
+    assert 'CommunicationChannel' in caplog.records[0].name
+    assert 'the drop box is not open' in caplog.records[0].msg
 
-        self.assertEqual([
-            TaskPackage(task = task1, args = (), kwargs = {}),
-            TaskPackage(task = task2, args = (123, 'ABC'), kwargs = {'A': 34}),
-        ], dropbox.packages)
+    dropbox.put.assert_not_called()
 
-        obj.end()
+def test_receive_when_closed(obj, dropbox, caplog):
 
-    def test_receive(self):
-        dropbox = MockDropbox()
-        obj = CommunicationChannel(dropbox = dropbox)
-        obj.begin()
+    result1 = mock.MagicMock(name = 'result1')
+    dropbox.receive = mock.MagicMock(return_value = result1)
 
-        result1 = MockResult('result1')
-        dropbox.result = result1
-        self.assertEqual(result1, obj.receive())
+    with caplog.at_level(logging.WARNING, logger = 'alphatwirl'):
+        result = obj.receive()
 
-        obj.end()
+    assert len(caplog.records) == 1
+    assert caplog.records[0].levelname == 'WARNING'
+    assert 'CommunicationChannel' in caplog.records[0].name
+    assert 'the drop box is not open' in caplog.records[0].msg
 
-    def test_put_when_closed(self):
-        dropbox = MockDropbox()
-        obj = CommunicationChannel(dropbox = dropbox)
+    assert result is None
 
-        # logging.getLogger('alphatwirl').setLevel(logging.DEBUG)
-        task1 = MockTask('task1')
-        obj.put(task1)
-
-        self.assertEqual([ ], dropbox.packages) # empty
-
-    def test_receive_when_closed(self):
-        dropbox = MockDropbox()
-        obj = CommunicationChannel(dropbox = dropbox)
-
-        # logging.getLogger('alphatwirl').setLevel(logging.DEBUG)
-        result1 = MockResult('result1')
-        dropbox.result = result1
-        self.assertIsNone(obj.receive())
-
-        obj.end()
+    obj.end()
 
 ##__________________________________________________________________||

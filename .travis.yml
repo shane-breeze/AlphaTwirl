@@ -6,6 +6,11 @@ matrix:
     include:
         - python: 2.7
           env: PYTHON=2.7 ROOT=6.04
+        - python: 3.6
+          env: PYTHON=3.6 ROOT=6.05
+    allow_failures:
+        # - python: 3.6
+        
 install:
   - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then curl --silent http://repo.continuum.io/miniconda/Miniconda-latest-MacOSX-x86_64.sh -o miniconda.sh; fi
   - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then wget -nv http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh; fi
@@ -21,12 +26,16 @@ install:
   - conda create -q -n testenv python=${PYTHON} root=${ROOT} sphinx pandas numpy
   - export CONDA_ENV_PATH=$HOME/miniconda/envs/testenv
   - source activate testenv
+  - pip install pytest
   - pip install codecov
+  - pip install pytest-cov
+  - pip install pytest-mock
 
 script:
-  - coverage run -m unittest discover -s ./tests/unit/ -t ./
+  - pytest --cov
 
 after_success:
+  - coverage combine
   - codecov
 
 cache: apt

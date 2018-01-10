@@ -1,4 +1,4 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
+# Tai Sakuma <tai.sakuma@gmail.com>
 
 ##__________________________________________________________________||
 class ProgressReport(object):
@@ -16,5 +16,23 @@ class ProgressReport(object):
         self.name = name
         self.done = done
         self.total = total
+
+    def __repr__(self):
+        name_value_pairs = (
+            ('taskid', self.taskid),
+            ('name', self.name),
+            ('done', self.done),
+            ('total', self.total),
+        )
+        return '{}({})'.format(
+            self.__class__.__name__,
+            ', '.join(['{} = {!r}'.format(n, v) for n, v in name_value_pairs]),
+        )
+
+    def last(self):
+         return self.done == self.total
+
+    def first(self):
+         return self.done == 0
 
 ##__________________________________________________________________||

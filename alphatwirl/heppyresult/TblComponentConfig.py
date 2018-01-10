@@ -1,4 +1,4 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
+# Tai Sakuma <tai.sakuma@gmail.com>
 from ..misc import mkdir_p
 from ..misc import list_to_aligned_text
 import os
@@ -26,7 +26,7 @@ class TblComponentConfig(object):
         if len(self._rows) == 1: return
 
         f = self._open(self._outPath)
-        f.write(list_to_aligned_text(self._rows))
+        f.write(list_to_aligned_text(self._rows).encode())
         self._close(f)
 
     def _open(self, path):

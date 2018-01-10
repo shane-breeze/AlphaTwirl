@@ -1,4 +1,4 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
+# Tai Sakuma <tai.sakuma@gmail.com>
 from ..progressbar import NullProgressMonitor
 
 ##__________________________________________________________________||
@@ -19,6 +19,11 @@ class CommunicationChannel0(object):
     def __init__(self, progressMonitor = None):
         self.progressMonitor = NullProgressMonitor() if progressMonitor is None else progressMonitor
         self.results = [ ]
+
+    def __repr__(self):
+        return '{}()'.format(
+            self.__class__.__name__,
+        )
 
     def begin(self):
         self.progressReporter = self.progressMonitor.createReporter()

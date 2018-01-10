@@ -1,8 +1,11 @@
 from setuptools import setup, find_packages
 
+import versioneer
+
 setup(
     name = 'alphatwirl',
-    version= '0.9.5',
+    version = versioneer.get_version(),
+    cmdclass = versioneer.get_cmdclass(),
     description = 'A Python library for summarizing event data',
     author = 'Tai Sakuma',
     author_email = 'tai.sakuma@gmail.com',
@@ -13,5 +16,6 @@ setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: BSD License',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.6',
     ]
 )
