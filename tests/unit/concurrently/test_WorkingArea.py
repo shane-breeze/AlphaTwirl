@@ -22,7 +22,8 @@ MockResult = collections.namedtuple('MockResult', 'name')
 @pytest.fixture()
 def obj(tmpdir_factory):
     tmpdir = tmpdir_factory.mktemp('')
-    return WorkingArea(dir = str(tmpdir), python_modules = ('alphatwirl', ))
+    return WorkingArea(dir = str(tmpdir), python_modules = ('alphatwirl', ),
+                       exclusions = "random_junk_string")
 
 ##__________________________________________________________________||
 def test_repr(obj):

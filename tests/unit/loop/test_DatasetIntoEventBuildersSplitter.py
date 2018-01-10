@@ -33,6 +33,7 @@ class MockEventBuilderConfigMaker(object):
         self.ret_file_list_in = None
         self.ret_create_config_for = None
         self.ret_nevents_in_file = collections.deque()
+        self.raise_AttributeError = False
 
     def file_list_in(self, dataset, maxFiles):
         self.args_file_list_in.append((dataset, maxFiles))
@@ -42,6 +43,8 @@ class MockEventBuilderConfigMaker(object):
             return self.ret_file_list_in[:maxFiles]
 
     def nevents_in_file(self, path):
+        if self.raise_AttributeError:
+            raise AttributeError, "Dummy attribute error"
         return self.ret_nevents_in_file.popleft()
 
     def create_config_for(self, dataset, file_, start, length):
@@ -237,6 +240,17 @@ class TestDatasetIntoEventBuildersSplitter(unittest.TestCase):
         expected = [ ]
         actual = self.obj._file_nevents_list_for(dataset, maxFiles = 0)
         self.assertEqual(expected, actual)
+
+    def test_file_nevents_list_for_handlesAttributeError(self):
+
+        dataset = MockDataset()
+        self.configMaker.raise_AttributeError = True
+
+        expected = []
+        actual = self.obj._file_nevents_list_for(dataset, maxFiles = 1)
+        self.assertEqual(expected, actual)
+
+        self.configMaker.raise_AttributeError = False
 
     def test_create_configs(self):
         dataset = MockDataset()
