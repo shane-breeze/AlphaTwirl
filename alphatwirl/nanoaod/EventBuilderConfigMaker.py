@@ -29,7 +29,7 @@ class EventBuilderConfigMaker(object):
 
     def nevents_in_file(self, path):
         file = ROOT.TFile.Open(path)
-        tree = file.Get(self.treeName)
+        tree = file.Get(self.tree_name)
         return tree.GetEntries() # GetEntries() is slow. call only as
                                  # many times as necessary
 
