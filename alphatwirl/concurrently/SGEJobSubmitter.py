@@ -6,7 +6,7 @@ import argparse
 import shlex
 import subprocess
 import collections
-import time
+import time as t
 import textwrap
 import getpass
 import re
@@ -111,7 +111,7 @@ class SGEJobSubmitter(object):
         sleep = 5
         while self.clusterids_outstanding:
             self.poll()
-            time.sleep(sleep)
+            t.sleep(sleep)
         return self.clusterids_finished
 
     def failed_runids(self, runids):
@@ -160,7 +160,7 @@ def try_executing_until_succeed(procargs):
             stderr=subprocess.PIPE
         )
         stdout, stderr =  proc.communicate()
-        success = not (proc.returncode or stderr) or "does not exist" in stdout
+        success = not (proc.returncode or stderr) or "not exist" in stderr
 
         #
         if success: break
@@ -170,9 +170,9 @@ def try_executing_until_succeed(procargs):
         logger.warning('the command failed: {}. will try again in {} seconds'.format(command_display, sleep))
 
         #
-        time.sleep(sleep)
+        t.sleep(sleep)
 
-    if "does not exist" in stdout: return [ ]
+    if "not exist" in stderr: return [ ]
     elif "error state" in stdout: retval = "{} 1".format(procargs[-1])
     else: retval = "{} 2".format(procargs[-1])
     return [retval]
@@ -180,7 +180,7 @@ def try_executing_until_succeed(procargs):
 ##__________________________________________________________________||
 def query_status_for(ids):
 
-    n_at_a_time = 500
+    n_at_a_time = 1#500
     ids_split = [ids[i:(i + n_at_a_time)] for i in range(0, len(ids), n_at_a_time)]
     stdout = [ ]
     for ids_sub in ids_split:
