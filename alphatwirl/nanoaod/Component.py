@@ -6,7 +6,7 @@ import collections
 ##__________________________________________________________________||
 Component = collections.namedtuple(
     'Component',
-    'name path'
+    'name files'
 )
 
 ##__________________________________________________________________||
