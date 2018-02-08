@@ -18,8 +18,10 @@ class BEvents(Events):
         )
 
     def __getattr__(self, name):
+        if name.startswith("__"):
+            raise AttributeError(name)
 
-        if name in self.branches:
+        if name in self.__dict__["branches"]:
             return self.branches[name]
 
         branch = self.buildBranch(self.tree, name)
