@@ -160,7 +160,13 @@ def try_executing_until_succeed(procargs):
             stderr=subprocess.PIPE
         )
         stdout, stderr =  proc.communicate()
-        success = not (proc.returncode or stderr) or "not exist" in stderr
+
+        # 1) any failure state submitting the command
+        # 2) for qstat -j <job-id>: pass when no job-id exists
+        # 3) for qdel <job-id>: pass when no job-id exists
+        success = not (proc.returncode or stderr) \
+                  or "do not exist" in stderr \
+                  or "does not exist" in stdout
 
         #
         if success: break
@@ -172,7 +178,10 @@ def try_executing_until_succeed(procargs):
         #
         t.sleep(sleep)
 
-    if "not exist" in stderr: return [ ]
+    if "do not exist" in stderr or "does not exist" in stdout: return [ ]
+    #    with open("stderr.txt",'r') as f: error_report = f.read()
+    #    if len(error_report)==0: return [ ]
+    #    else: retval = "{} 1".format(procargs[-1])
     elif "error state" in stdout: retval = "{} 1".format(procargs[-1])
     else: retval = "{} 2".format(procargs[-1])
     return [retval]
