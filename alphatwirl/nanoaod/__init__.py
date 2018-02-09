@@ -11,4 +11,6 @@ except ImportError:
     pass
 
 if hasROOT:
+    from .EventBuilder import EventBuilder
+    from .EventBuilderConfig import EventBuilderConfig
     from .EventBuilderConfigMaker import EventBuilderConfigMaker

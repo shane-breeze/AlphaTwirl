@@ -4,9 +4,11 @@
 import collections
 
 ##__________________________________________________________________||
-Component = collections.namedtuple(
-    'Component',
-    'name eventtype dataset era nevents nfiles files'
+EventBuilderConfig = collections.namedtuple(
+    'EventBuilderConfig',
+    'base component'
 )
+
+# base is for roottree.EventBuilderConfig
 
 ##__________________________________________________________________||
