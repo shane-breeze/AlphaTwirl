@@ -29,7 +29,13 @@ class NanoAODResult(object):
     #    return os.path.join(self.path, name)
 
     def components(self):
-        return [Component(name=row.name, files=row.files)
+        return [Component(name=row.name,
+                          eventtype=row.eventtype,
+                          dataset=row.dataset,
+                          era=row.era,
+                          nevents=row.nevents,
+                          nfiles=row.nfiles,
+                          files=row.files)
                 for row in self.components_df.itertuples()]
 
 ##__________________________________________________________________||

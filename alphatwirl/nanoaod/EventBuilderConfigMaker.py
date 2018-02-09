@@ -3,20 +3,25 @@ import os
 
 import ROOT
 
-from ..roottree import EventBuilderConfig
+from ..roottree import EventBuilderConfig as BaseEventBuilderConfig
+from .EventBuilderConfig import EventBuilderConfig as NanoAODEventBuilderConfig
 
 ##__________________________________________________________________||
 class EventBuilderConfigMaker(object):
-    def __init__(self, tree_name):
-        self.tree_name = tree_name
+    def __init__(self, treeName):
+        self.treeName = treeName
 
     def create_config_for(self, dataset, files, start, length):
-        config = EventBuilderConfig(
+        base_config = BaseEventBuilderConfig(
             inputPaths = files,
-            treeName = self.tree_name,
+            treeName = self.treeName,
             maxEvents = length,
             start = start,
             name = dataset.name, # for the progress report writer
+        )
+        config = NanoAODEventBuilderConfig(
+            base = base_config,
+            component = dataset # for scribblers
         )
         return config
 
@@ -29,7 +34,7 @@ class EventBuilderConfigMaker(object):
 
     def nevents_in_file(self, path):
         file = ROOT.TFile.Open(path)
-        tree = file.Get(self.tree_name)
+        tree = file.Get(self.treeName)
         return tree.GetEntries() # GetEntries() is slow. call only as
                                  # many times as necessary
 
