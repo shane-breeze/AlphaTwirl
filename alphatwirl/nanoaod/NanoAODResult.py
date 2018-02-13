@@ -3,6 +3,7 @@
 ##__________________________________________________________________||
 import os
 import re
+import numpy as np
 
 from Component import Component
 
@@ -29,13 +30,24 @@ class NanoAODResult(object):
     #    return os.path.join(self.path, name)
 
     def components(self):
-        return [Component(name=row.name,
-                          eventtype=row.eventtype,
-                          dataset=row.dataset,
-                          era=row.era,
-                          nevents=row.nevents,
-                          nfiles=row.nfiles,
-                          files=row.files)
-                for row in self.components_df.itertuples()]
+        comps = []
+        for row in self.components_df.itertuples():
+            comp_dict = {}
+            comp_dict["name"] = row.name
+            comp_dict["eventtype"] = row.eventtype
+            comp_dict["dataset"] = row.dataset
+            comp_dict["era"] = row.era
+            comp_dict["nevents"] = row.nevents
+            comp_dict["nfiles"] = row.nfiles
+            comp_dict["files"] = row.files
+
+            # MC stuff
+            try:
+                comp_dict["cross_section"] = row.cross_section
+            except AttributeError:
+                comp_dict["cross_section"] = np.nan
+
+            comps.append(Component(**comp_dict))
+        return comps
 
 ##__________________________________________________________________||
