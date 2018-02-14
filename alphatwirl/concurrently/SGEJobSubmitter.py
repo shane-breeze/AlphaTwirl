@@ -1,12 +1,8 @@
 #!/usr/bin/env python
-# Tai Sakuma <sakuma@cern.ch>
-import os
-import sys
-import argparse
-import shlex
+import os, sys
 import subprocess
 import collections
-import time as t
+import time
 import textwrap
 import getpass
 import re
@@ -14,47 +10,99 @@ import logging
 
 import alphatwirl
 
+from .exec_util import try_executing_until_succeed, compose_shortened_command_for_logging
+
 ##__________________________________________________________________||
 SGE_JOBSTATUS = {
-    1: "Failed",
+    1: "Running",
     2: "Pending",
+    3: "Suspended",
+    4: "Error",
+    5: "Deleted",
+}
+
+# https://gist.github.com/cmaureir/4fa2d34bc9a1bd194af1
+SGE_JOBSTATE_CODES = {
+    # Running
+    "r": 1,
+    "t": 1,
+    "Rr": 1,
+    "Rt": 1,
+
+    # Pending
+    "qw": 2,
+    "hqw": 2,
+    "hRwq": 2,
+
+    # Suspended
+    "s": 3, "ts": 3,
+    "S": 3, "tS": 3,
+    "T": 3, "tT": 3,
+    "Rs": 3, "Rts":3, "RS":3, "RtS":3, "RT":3, "RtT": 3,
+
+    # Error
+    "Eqw": 4, "Ehqw": 4, "EhRqw": 4,
+
+    # Deleted
+    "dr": 5, "dt": 5, "dRr": 5, "ds": 5, "dS": 5, "dT": 5, "dRs": 5, "dRS": 5, "dRT": 5,
 }
 
 ##__________________________________________________________________||
 class SGEJobSubmitter(object):
     def __init__(self, queue="hep.q", time=10800):
-        self.job_desc_template = "qsub -o {out} -e {error} -cwd -V -q {queue} -l h_rt={time} {job_script}"
-        self.clusterids_outstanding = [ ]
-        self.clusterids_finished = [ ]
+        self.job_desc_template = "qsub -t 1-{njobs}:1 -o /dev/null -e /dev/null -cwd -V -q {queue} -l h_rt={time} {job_script}"
+        self.clusterprocids_outstanding = [ ]
+        self.clusterprocids_finished = [ ]
         self.queue = queue
         self.time = time
 
     def run(self, workingArea, package_index):
+        return self.run_multiple(workingArea, [package_index])[0]
+
+    def run_multiple(self, workingArea, package_indices):
+
+        if not package_indices:
+            return [ ]
 
         cwd = os.getcwd()
         os.chdir(workingArea.path)
 
-        package_path = workingArea.package_path(package_index)
+        package_paths = [workingArea.package_path(i) for i in package_indices]
+        resultdir_basename = [os.path.splitext(p)[0] for p in package_paths]
+        resultdir_basename = [os.path.splitext(n)[0] for n in resultdir_basename]
+        resultdirs = [os.path.join('results', n) for n in resultdir_basename]
 
-        resultdir_basename = os.path.splitext(package_path)[0]
-        resultdir_basename = os.path.splitext(resultdir_basename)[0]
-        resultdir = os.path.join('results', resultdir_basename)
-        alphatwirl.mkdir_p(resultdir)
-
-        input_files = [package_path, 'python_modules.tar.gz']
-        input_files = [f for f in input_files if os.path.exists(f)]
+        for d in resultdirs:
+            alphatwirl.mkdir_p(d)
 
         job_desc = self.job_desc_template.format(
             job_script = 'job_script.sh',
-            out = os.path.join(resultdir, 'stdout.txt'),
-            error = os.path.join(resultdir, 'stderr.txt'),
+            njobs = len(package_paths),
             queue = self.queue,
             time = self.time,
         )
 
+        s = "#!/bin/bash\n\n"
+        for idx, package_path in enumerate(package_paths):
+            s += "cmd1[{index}]='cd {path}'\n".format(
+                index=idx+1,
+                path=resultdirs[idx],
+            )
+            s += "cmd2[{index}]='python {job_script} {args}'\n".format(
+                index=idx+1,
+                job_script="../../run.py",
+                args=package_path,
+            )
+        s += "\n${{cmd1[$SGE_TASK_ID]}} > {out} 2> {err}\n".format(
+            out="stdout.txt",
+            err="stderr.txt",
+        )
+        s += "${{cmd2[$SGE_TASK_ID]}} >> {out} 2>> {err}".format(
+            out="stdout.txt",
+            err="stderr.txt",
+        )
         with open("job_script.sh",'w') as f:
-            f.write("python {job_script} {args}".format(job_script="run.py",
-                                                        args=package_path))
+            f.write(s)
 
         proc = subprocess.Popen(
             job_desc.split(),
@@ -63,16 +111,24 @@ class SGEJobSubmitter(object):
         )
         stdout, stderr = proc.communicate()
 
-        regex = re.compile("Your job (\d*)", re.MULTILINE)
+        regex = re.compile("Your job-array (\d+).1-(\d+):1 \(\"job_script.sh\"\) has been submitted")
+        njobs = int(regex.search(stdout).groups()[1])
         clusterid = regex.search(stdout).groups()[0]
-
-        self.clusterids_outstanding.append(clusterid)
+        # e.g., '2448770'
 
         #change_job_priority([clusterid], 10) ## need to make configurable
 
+        procid = ['{}'.format(i+1) for i in range(njobs)]
+        # e.g., ['1', '2', '3', '4']
+
+        clusterprocids = ['{}.{}'.format(clusterid, i) for i in procid]
+        # e.g., ['2448770.1', '2448770.2', '2448770.3', '2448770.4']
+
+        self.clusterprocids_outstanding.extend(clusterprocids)
+
         os.chdir(cwd)
 
-        return clusterid
+        return clusterprocids
 
     def poll(self):
         """check if the jobs are running and return a list of cluster IDs for
@@ -80,142 +136,105 @@ class SGEJobSubmitter(object):
 
         """
 
-        clusterid_status_list = query_status_for(self.clusterids_outstanding)
+        clusterids = clusterprocids2clusterids(self.clusterprocids_outstanding)
+        clusterprocid_status_list = query_status_for(clusterids)
+        print clusterprocid_status_list
         # e.g., [['1730126', 2], ['1730127', 2], ['1730129', 1], ['1730130', 1]]
 
 
-        if clusterid_status_list:
-            clusterids, statuses = zip(*clusterid_status_list)
+        if clusterprocid_status_list:
+            clusterprocids, statuses = zip(*clusterprocid_status_list)
         else:
-            clusterids, statuses = (), ()
+            clusterprocids, statuses = (), ()
 
-        clusterids_finished = [i for i in self.clusterids_outstanding if i not in clusterids]
-        self.clusterids_finished.extend(clusterids_finished)
-        self.clusterids_outstanding[:] = clusterids
+        print self.clusterprocids_outstanding
+        print clusterprocids
+        clusterprocids_finished = [i for i in self.clusterprocids_outstanding if i not in clusterprocids]
+        print clusterprocids_finished
+        self.clusterprocids_finished.extend(clusterprocids_finished)
+        self.clusterprocids_outstanding[:] = clusterprocids
 
         # logging
         counter = collections.Counter(statuses)
         messages = [ ]
         if counter:
             messages.append(', '.join(['{}: {}'.format(SGE_JOBSTATUS[k], counter[k]) for k in counter.keys()]))
-        if self.clusterids_finished:
-            messages.append('Finished {}'.format(len(self.clusterids_finished)))
+        if self.clusterprocids_finished:
+            messages.append('Finished {}'.format(len(self.clusterprocids_finished)))
         logger = logging.getLogger(__name__)
         logger.info(', '.join(messages))
 
-        return clusterids_finished
+        return clusterprocids_finished
 
     def wait(self):
         """wait until all jobs finish and return a list of cluster IDs
         """
         sleep = 5
-        while self.clusterids_outstanding:
+        while self.clusterprocids_outstanding:
             self.poll()
             t.sleep(sleep)
-        return self.clusterids_finished
+        return self.clusterprocids_finished
 
     def failed_runids(self, runids):
-        # remove failed clusterids from self.clusterids_finished
-        # so that len(self.clusterids_finished)) becomes the number
+        # remove failed clusterprocids from self.clusterprocids_finished
+        # so that len(self.clusterprocids_finished)) becomes the number
         # of the successfully finished jobs
         for i in runids:
             try:
-                self.clusterids_finished.remove(i)
+                self.clusterprocids_finished.remove(i)
             except ValueError:
                 pass
 
     def terminate(self):
-        n_at_a_time = 500
-        ids_split = [self.clusterids_outstanding[i:(i + n_at_a_time)] for i in range(0, len(self.clusterids_outstanding), n_at_a_time)]
+        clusterids = clusterprocids2clusterids(self.clusterprocids_outstanding)
+        ids_split = split_ids(clusterids)
         statuses = [ ]
         for ids_sub in ids_split:
             procargs = ['qdel'] + ids_sub
-            stdout = try_executing_until_succeed(procargs)
-
-##__________________________________________________________________||
-def try_executing_until_succeed(procargs):
-
-    sleep = 2
-    logger = logging.getLogger(__name__)
-
-    while True:
-
-        # logging
-        ellipsis = '...(({} letters))...'
-        nfirst = 50
-        nlast = 50
-        command_display = '{} {}'.format(procargs[0], ' '.join([repr(a) for a in procargs[1:]]))
-        if len(command_display) > nfirst + len(ellipsis) + nlast:
-            command_display = '{}...(({} letters))...{}'.format(
-                command_display[:nfirst],
-                len(command_display) - (nfirst + nlast),
-                command_display[-nlast:]
+            command_display = compose_shortened_command_for_logging(procargs)
+            logger = logging.getLogger(__name__)
+            logger.debug('execute: {}'.format(command_display))
+            proc = subprocess.Popen(
+                procargs,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
             )
-        logger.debug('execute: {}'.format(command_display))
-
-        #
-        proc = subprocess.Popen(
-            procargs,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        stdout, stderr =  proc.communicate()
-
-        # 1) any failure state submitting the command
-        # 2) for qstat -j <job-id>: pass when no job-id exists
-        # 3) for qdel <job-id>: pass when no job-id exists
-        success = not (proc.returncode or stderr) \
-                  or "do not exist" in stderr \
-                  or "does not exist" in stdout
-
-        #
-        if success: break
-
-        #
-        if stderr: logger.warning(stderr.strip())
-        logger.warning('the command failed: {}. will try again in {} seconds'.format(command_display, sleep))
-
-        #
-        t.sleep(sleep)
-
-    if "do not exist" in stderr or "does not exist" in stdout: return [ ]
-    #    with open("stderr.txt",'r') as f: error_report = f.read()
-    #    if len(error_report)==0: return [ ]
-    #    else: retval = "{} 1".format(procargs[-1])
-    elif "error state" in stdout: retval = "{} 1".format(procargs[-1])
-    else: retval = "{} 2".format(procargs[-1])
-    return [retval]
+            stdout, stderr = proc.communicate()
 
 ##__________________________________________________________________||
-def query_status_for(ids):
+def clusterprocids2clusterids(clusterprocids):
+    return list(set([i.split('.')[0] for i in clusterprocids]))
 
-    n_at_a_time = 1#500
-    ids_split = [ids[i:(i + n_at_a_time)] for i in range(0, len(ids), n_at_a_time)]
-    stdout = [ ]
+##__________________________________________________________________||
+def query_status_for(ids, n_at_a_time=500):
+
+    ids_split = split_ids(ids, n=n_at_a_time)
+    ret = [ ]
     for ids_sub in ids_split:
-        procargs = ['qstat', '-j'] + ids_sub
-        stdout.extend(try_executing_until_succeed(procargs))
-
-    # e.g., stdout = ['688244 1 ', '688245 1 ', '688246 2 ']
-
-    ret = [l.strip().split() for l in stdout]
-    # e.g., [['688244', '1'], ['688245', '1'], ['688246', '2']]
-
-    ret = [[e[0], int(e[1])] for e in ret]
-    # a list of [clusterid, status]
-    # e.g., [['688244', 1], ['688245', 1], ['688246', 2]]
+        procargs = ['qstat','-g','d']
+        result = try_executing_until_succeed(procargs)
+        # e.g.,
+        # job-ID  prior   name       user         state submit/start at     queue                          slots ja-task-ID 
+        # -----------------------------------------------------------------------------------------------------------------
+        # 2448775 0.12500 job.sh     sdb15        qw    02/14/2018 04:15:59                                    1 1
+        # 2448775 0.12500 job.sh     sdb15        qw    02/14/2018 04:15:59                                    1 2
+        # 2448775 0.12500 job.sh     sdb15        qw    02/14/2018 04:15:59                                    1 3
+        # 2448775 0.12500 job.sh     sdb15        qw    02/14/2018 04:15:59                                    1 4
+        ret.extend([
+            ["{}.{}".format(l.split()[0], l.split()[-1]), SGE_JOBSTATE_CODES[l.split()[4]]]
+            for l in result
+            if "job-ID" not in l and "-----" not in l and l.split()[0] in ids
+        ])
+        # e.g. [('2448775.1',2), ('2448775.2',2), ('2448775.3',2), ('2448775.4',2), ('2448769.1',6), ('2448769.2',6), ('2448769.3',6)
 
     return ret
 
-#  ##__________________________________________________________________||
-#  def change_job_priority(ids, priority=10):
-#
-#      # http://research.cs.wisc.edu/htcondor/manual/v7.8/2_6Managing_Job.html#sec:job-prio
-#
-#      n_at_a_time = 500
-#      ids_split = [ids[i:(i + n_at_a_time)] for i in range(0, len(ids), n_at_a_time)]
-#      for ids_sub in ids_split:
-#          procargs = ['condor_prio', '-p', str(priority)] + ids_sub
-#          try_executing_until_succeed(procargs)
+##__________________________________________________________________||
+def split_ids(ids, n=500):
+    # e.g.,
+    # ids = [3158174', '3158175', '3158176', '3158177', '3158178']
+    # n = 2
+    # return [[3158174', '3158175'], ['3158176', '3158177'], ['3158178']]
+    return [ids[i:(i + n)] for i in range(0, len(ids), n)]
 
 ##__________________________________________________________________||
