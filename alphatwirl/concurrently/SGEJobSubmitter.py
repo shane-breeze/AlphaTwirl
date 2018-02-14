@@ -49,12 +49,12 @@ SGE_JOBSTATE_CODES = {
 
 ##__________________________________________________________________||
 class SGEJobSubmitter(object):
-    def __init__(self, queue="hep.q", time=10800):
-        self.job_desc_template = "qsub -t 1-{njobs}:1 -o /dev/null -e /dev/null -cwd -V -q {queue} -l h_rt={time} {job_script}"
+    def __init__(self, queue="hep.q", walltime=10800):
+        self.job_desc_template = "qsub -t 1-{njobs}:1 -o /dev/null -e /dev/null -cwd -V -q {queue} -l h_rt={walltime} {job_script}"
         self.clusterprocids_outstanding = [ ]
         self.clusterprocids_finished = [ ]
         self.queue = queue
-        self.time = time
+        self.walltime = walltime
 
     def run(self, workingArea, package_index):
         return self.run_multiple(workingArea, [package_index])[0]
@@ -68,9 +68,9 @@ class SGEJobSubmitter(object):
         os.chdir(workingArea.path)
 
         package_paths = [workingArea.package_path(i) for i in package_indices]
-        resultdir_basename = [os.path.splitext(p)[0] for p in package_paths]
-        resultdir_basename = [os.path.splitext(n)[0] for n in resultdir_basename]
-        resultdirs = [os.path.join('results', n) for n in resultdir_basename]
+        resultdir_basenames = [os.path.splitext(p)[0] for p in package_paths]
+        resultdir_basenames = [os.path.splitext(n)[0] for n in resultdir_basenames]
+        resultdirs = [os.path.join('results', n) for n in resultdir_basenames]
 
         for d in resultdirs:
             alphatwirl.mkdir_p(d)
@@ -79,7 +79,7 @@ class SGEJobSubmitter(object):
             job_script = 'job_script.sh',
             njobs = len(package_paths),
             queue = self.queue,
-            time = self.time,
+            walltime = self.walltime,
         )
 
         s = "#!/bin/bash\n\n"
@@ -168,7 +168,7 @@ class SGEJobSubmitter(object):
         sleep = 5
         while self.clusterprocids_outstanding:
             self.poll()
-            t.sleep(sleep)
+            time.sleep(sleep)
         return self.clusterprocids_finished
 
     def failed_runids(self, runids):
