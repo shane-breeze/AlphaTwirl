@@ -138,7 +138,6 @@ class SGEJobSubmitter(object):
 
         clusterids = clusterprocids2clusterids(self.clusterprocids_outstanding)
         clusterprocid_status_list = query_status_for(clusterids)
-        print clusterprocid_status_list
         # e.g., [['1730126', 2], ['1730127', 2], ['1730129', 1], ['1730130', 1]]
 
 
@@ -147,10 +146,7 @@ class SGEJobSubmitter(object):
         else:
             clusterprocids, statuses = (), ()
 
-        print self.clusterprocids_outstanding
-        print clusterprocids
         clusterprocids_finished = [i for i in self.clusterprocids_outstanding if i not in clusterprocids]
-        print clusterprocids_finished
         self.clusterprocids_finished.extend(clusterprocids_finished)
         self.clusterprocids_outstanding[:] = clusterprocids
 
