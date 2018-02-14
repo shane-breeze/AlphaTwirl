@@ -22,6 +22,9 @@ class AllwCount(object):
             self.count
         )
 
+    def set_args(self, args_dict):
+        pass
+
     def add(self, selection):
         self.selections.append(selection)
         self.count.add(selection)
@@ -80,6 +83,9 @@ class AnywCount(object):
             self.selections,
             self.count
         )
+
+    def set_args(self, args_dict):
+        pass
 
     def add(self, selection):
         self.selections.append(selection)
@@ -140,6 +146,9 @@ class NotwCount(object):
             self.selection,
             self.count
         )
+
+    def set_args(self, args_dict):
+        pass
 
     def begin(self, event):
         if hasattr(self.selection, 'begin'): self.selection.begin(event)
