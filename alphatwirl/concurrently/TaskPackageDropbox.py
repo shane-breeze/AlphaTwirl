@@ -93,6 +93,8 @@ class TaskPackageDropbox(object):
             logger = logging.getLogger(__name__)
             logger.warning('resubmitting {}'.format(self.workingArea.package_path(pkgidx)))
 
+            try: self.dispatcher.walltime = self.dispatcher.walltime*2
+            except AttributeError: pass
             runid = self.dispatcher.run(self.workingArea, pkgidx)
             self.runid_pkgidx_map[runid] = pkgidx
 
