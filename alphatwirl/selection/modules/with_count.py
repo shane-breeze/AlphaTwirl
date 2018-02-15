@@ -22,6 +22,9 @@ class AllwCount(object):
             self.count
         )
 
+    def set_args(self, args_dict):
+        pass
+
     def add(self, selection):
         self.selections.append(selection)
         self.count.add(selection)
@@ -53,7 +56,7 @@ class AllwCount(object):
         ret = self.count.copy()
 
         # reversed enumerate
-        for i, s in itertools.izip(reversed(xrange(len(self.selections))), reversed(self.selections)):
+        for i, s in zip(reversed(range(len(self.selections))), reversed(self.selections)):
             if hasattr(s, 'results'):
                 ret.insert(i, s.results(increment = True))
 
@@ -80,6 +83,9 @@ class AnywCount(object):
             self.selections,
             self.count
         )
+
+    def set_args(self, args_dict):
+        pass
 
     def add(self, selection):
         self.selections.append(selection)
@@ -112,7 +118,7 @@ class AnywCount(object):
         ret = self.count.copy()
 
         # reversed enumerate
-        for i, s in itertools.izip(reversed(xrange(len(self.selections))), reversed(self.selections)):
+        for i, s in zip(reversed(range(len(self.selections))), reversed(self.selections)):
             if hasattr(s, 'results'):
                 ret.insert(i, s.results(increment = True))
 
@@ -140,6 +146,9 @@ class NotwCount(object):
             self.selection,
             self.count
         )
+
+    def set_args(self, args_dict):
+        pass
 
     def begin(self, event):
         if hasattr(self.selection, 'begin'): self.selection.begin(event)

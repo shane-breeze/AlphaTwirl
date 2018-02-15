@@ -1,4 +1,4 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
+# Tai Sakuma <tai.sakuma@gmail.com>
 import logging
 
 from .parse_indices_config import parse_indices_config
@@ -75,7 +75,7 @@ class KeyValueComposer(object):
         for varname in attr_names:
             try:
                 attr = getattr(event, varname)
-            except AttributeError, e:
+            except AttributeError as e:
                 logger = logging.getLogger(__name__)
                 logger.warning(e)
                 logger.warning(self)
@@ -88,7 +88,7 @@ class KeyValueComposer(object):
 
         try:
             arrays = self._array_reader.read()
-        except StandardError, e:
+        except Exception as e:
             logger = logging.getLogger(__name__)
             logger.error(e)
             logger.error(self)

@@ -1,8 +1,9 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
-from ..misc import mkdir_p
-from ..misc import listToAlignedText
+# Tai Sakuma <tai.sakuma@gmail.com>
 import os
-from ReadCounter import ReadCounter
+
+from ..misc import mkdir_p
+from ..misc import list_to_aligned_text
+from .ReadCounter import ReadCounter
 
 ##__________________________________________________________________||
 class TblCounter(object):
@@ -32,7 +33,7 @@ class TblCounter(object):
     def read(self, component):
         try:
             path = os.path.join(getattr(component, self.analyzerName).path, self.fileName)
-        except AttributeError, e:
+        except AttributeError as e:
             import logging
             logging.warning(e)
             return
@@ -53,7 +54,7 @@ class TblCounter(object):
             self._rows = [['component']]
 
         f = self._open(self._outPath)
-        f.write(listToAlignedText(self._rows))
+        f.write(list_to_aligned_text(self._rows).encode())
         self._close(f)
 
     def _determine_columnNames_start_rows(self):

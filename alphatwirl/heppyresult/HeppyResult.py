@@ -1,10 +1,10 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
+# Tai Sakuma <tai.sakuma@gmail.com>
 
 ##__________________________________________________________________||
 import os
 import re
-from Component import Component
-from ReadVersionInfo import ReadVersionInfo
+from .Component import Component
+from .ReadVersionInfo import ReadVersionInfo
 
 ##__________________________________________________________________||
 DEFAULT_EXCLUDE_LIST = ['Chunks', 'failed']

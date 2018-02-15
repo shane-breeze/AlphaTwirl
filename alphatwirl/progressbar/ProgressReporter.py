@@ -1,6 +1,5 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
+# Tai Sakuma <tai.sakuma@gmail.com>
 import time
-from ProgressReport import ProgressReport
 
 ##__________________________________________________________________||
 class ProgressReporter(object):
@@ -37,7 +36,7 @@ class ProgressReporter(object):
     def __init__(self, queue):
         self.queue = queue
         self.interval = 0.1 # [second]
-        self._readTime()
+        self._read_time()
 
     def __repr__(self):
         return '{}(queue = {!r}, interval = {!r}'.format(
@@ -54,20 +53,21 @@ class ProgressReporter(object):
 
         """
 
-        if not self._needToReport(report): return
+        if not self._need_to_report(report): return
         self._report(report)
 
     def _report(self, report):
         self.queue.put(report)
-        self._readTime()
+        self._read_time()
 
-    def _needToReport(self, report):
-        if self._time() - self.lastTime > self.interval: return True
-        if report.done == report.total: return True
-        if report.done == 0: return True
+    def _need_to_report(self, report):
+        if self._time() - self.last_time > self.interval: return True
+        if report.last(): return True
+        if report.first(): return True
         return False
 
+    def _read_time(self): self.last_time = self._time()
+
     def _time(self): return time.time()
-    def _readTime(self): self.lastTime = self._time()
 
 ##__________________________________________________________________||

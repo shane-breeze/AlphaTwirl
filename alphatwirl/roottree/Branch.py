@@ -1,5 +1,5 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
-from BranchAddressManager import BranchAddressManager
+# Tai Sakuma <tai.sakuma@gmail.com>
+from .BranchAddressManager import BranchAddressManager
 
 ##__________________________________________________________________||
 class Branch(object):

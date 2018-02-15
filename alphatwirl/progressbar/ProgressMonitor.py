@@ -1,5 +1,5 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
-from ProgressReporter import ProgressReporter
+# Tai Sakuma <tai.sakuma@gmail.com>
+from .ProgressReporter import ProgressReporter
 
 ##__________________________________________________________________||
 class Queue(object):
@@ -20,7 +20,7 @@ class ProgressMonitor(object):
     def end(self): pass
 
     def createReporter(self):
-        reporter = ProgressReporter(self.queue)
+        reporter = ProgressReporter(queue = self.queue)
         return reporter
 
 ##__________________________________________________________________||

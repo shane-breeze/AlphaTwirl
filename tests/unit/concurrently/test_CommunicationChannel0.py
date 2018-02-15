@@ -1,151 +1,183 @@
+# Tai Sakuma <tai.sakuma@gmail.com>
+import pytest
+
+try:
+    import unittest.mock as mock
+except ImportError:
+    import mock
+
 from alphatwirl.concurrently import CommunicationChannel0
-import unittest
-import time
-import os
 
 ##__________________________________________________________________||
-class MockResult(object):
-    def __init__(self, data = None):
-        self.data = data
+@pytest.fixture()
+def obj():
+    return CommunicationChannel0()
 
 ##__________________________________________________________________||
-class MockTask(object):
-    def __init__(self, result, time):
-        self.result = result
-        self.time = time
-
-    def __call__(self, progressReporter):
-        time.sleep(self.time)
-        self.result.progressReporter = progressReporter
-        return self.result
+def test_repr(obj):
+    repr(obj)
 
 ##__________________________________________________________________||
-class TestCommunicationChannel0(unittest.TestCase):
+def test_begin_end(obj):
+    obj.begin()
+    obj.end()
 
-    def test_begin_end(self):
-        communicationChannel = CommunicationChannel0()
-        communicationChannel.begin()
-        communicationChannel.end()
+##__________________________________________________________________||
+def test_begin_begin_end(obj):
+    obj.begin()
+    obj.begin()
+    obj.end()
 
-    def test_begin_twice(self):
-        communicationChannel = CommunicationChannel0()
-        communicationChannel.begin()
-        communicationChannel.begin()
-        communicationChannel.end()
+##__________________________________________________________________||
+def test_begin_begin_terminate_end(obj):
+    obj.begin()
+    obj.terminate()
+    obj.end()
 
-    def test_put(self):
-        communicationChannel = CommunicationChannel0()
-        communicationChannel.begin()
+##__________________________________________________________________||
+def test_put_receive(obj):
+    obj.begin()
+    result1 = mock.Mock(name='result1')
+    task1 = mock.Mock(name='task1')
+    task1.return_value = result1
+    obj.put(task1, 123, 'ABC', A=34)
+    assert [mock.call(123, 'ABC', A=34, progressReporter=None)] == task1.call_args_list
+    assert [result1] == obj.receive()
+    obj.end()
 
-        result1 = MockResult('task1')
-        task1 = MockTask(result1, 0.003)
-        communicationChannel.put(task1)
+##__________________________________________________________________||
+def test_put_receive_typeerror(obj):
+    obj.begin()
+    result1 = mock.Mock(name='result1')
+    task1 = mock.Mock(name='task1')
+    task1.side_effect = [TypeError, result1]
+    obj.put(task1, 123, 'ABC', A=34)
+    assert [mock.call(123, 'ABC', A=34, progressReporter=None), mock.call(123, 'ABC', A=34)] == task1.call_args_list
+    assert [result1] == obj.receive()
+    obj.end()
 
-        result2 = MockResult('task2')
-        task2 = MockTask(result2, 0.001)
-        communicationChannel.put(task2)
+##__________________________________________________________________||
+def test_receive_order(obj):
+    # results of tasks are sorted in the order in which the tasks are
+    # put.
 
-        communicationChannel.end()
+    obj.begin()
 
-    def test_put_receive(self):
-        communicationChannel = CommunicationChannel0()
-        communicationChannel.begin()
+    result1 = mock.Mock(name='result1')
+    task1 = mock.Mock(name='task1')
+    task1.return_value = result1
+    obj.put(task1)
 
-        result1 = MockResult('task1')
-        task1 = MockTask(result1, 0.003)
-        communicationChannel.put(task1)
+    result2 = mock.Mock(name='result2')
+    task2 = mock.Mock(name='task2')
+    task2.return_value = result2
+    obj.put(task2)
 
-        result2 = MockResult('task2')
-        task2 = MockTask(result2, 0.001)
-        communicationChannel.put(task2)
+    result3 = mock.Mock(name='result3')
+    task3 = mock.Mock(name='task3')
+    task3.return_value = result3
+    obj.put(task3)
 
-        actual = [r.data for r in communicationChannel.receive()]
-        self.assertEqual(set(['task1', 'task2']), set(actual))
+    assert [result1, result2, result3] == obj.receive()
 
-        communicationChannel.end()
+    obj.end()
 
-    def test_receive_order(self):
-        # results of tasks are sorted in the order in which the tasks
-        # are put.
+##__________________________________________________________________||
+def test_put_receive_repeat(obj):
+    obj.begin()
 
-        communicationChannel = CommunicationChannel0()
-        communicationChannel.begin()
+    result1 = mock.Mock(name='result1')
+    task1 = mock.Mock(name='task1')
+    task1.return_value = result1
+    obj.put(task1)
 
-        result1 = MockResult('task1')
-        task1 = MockTask(result1, 0.010)
-        communicationChannel.put(task1)
+    result2 = mock.Mock(name='result2')
+    task2 = mock.Mock(name='task2')
+    task2.return_value = result2
+    obj.put(task2)
 
-        result2 = MockResult('task2')
-        task2 = MockTask(result2, 0.001)
-        communicationChannel.put(task2)
+    assert [result1, result2] == obj.receive()
 
-        result3 = MockResult('task3')
-        task3 = MockTask(result3, 0.005)
-        communicationChannel.put(task3)
+    result3 = mock.Mock(name='result3')
+    task3 = mock.Mock(name='task3')
+    task3.return_value = result3
+    obj.put(task3)
 
-        actual = [r.data for r in communicationChannel.receive()]
-        self.assertEqual(['task1', 'task2', 'task3'], actual)
+    result4 = mock.Mock(name='result4')
+    task4 = mock.Mock(name='task4')
+    task4.return_value = result4
+    obj.put(task4)
 
-        communicationChannel.end()
+    assert [result3, result4] == obj.receive()
 
-    def test_put_receive_repeat(self):
-        communicationChannel = CommunicationChannel0()
-        communicationChannel.begin()
+    obj.end()
 
-        result1 = MockResult('task1')
-        task1 = MockTask(result1, 0.003)
-        communicationChannel.put(task1)
+##__________________________________________________________________||
+def test_begin_put_recive_end_repeat(obj):
 
-        result2 = MockResult('task2')
-        task2 = MockTask(result2, 0.001)
-        communicationChannel.put(task2)
+    obj.begin()
 
-        actual = [r.data for r in communicationChannel.receive()]
-        self.assertEqual(set(['task1', 'task2']), set(actual))
+    result1 = mock.Mock(name='result1')
+    task1 = mock.Mock(name='task1')
+    task1.return_value = result1
+    obj.put(task1)
 
-        result3 = MockResult('task3')
-        task3 = MockTask(result3, 0.002)
-        communicationChannel.put(task3)
+    obj.receive()
 
-        result4 = MockResult('task4')
-        task4 = MockTask(result4, 0.002)
-        communicationChannel.put(task4)
+    obj.end()
 
-        actual = [r.data for r in communicationChannel.receive()]
-        self.assertEqual(set(['task3', 'task4']), set(actual))
+    obj.begin()
 
-        communicationChannel.end()
+    result2 = mock.Mock(name='result2')
+    task2 = mock.Mock(name='task2')
+    task2.return_value = result2
+    obj.put(task2)
 
-    def test_begin_put_recive_end_repeat(self):
-        communicationChannel = CommunicationChannel0()
-        communicationChannel.begin()
+    obj.receive()
 
-        result = MockResult('task1')
-        task = MockTask(result, 0.003)
-        communicationChannel.put(task)
+    obj.end()
 
-        communicationChannel.receive()
+##__________________________________________________________________||
+def test_receive_without_put(obj):
+    obj.begin()
 
-        communicationChannel.end()
+    assert [ ] == obj.receive()
 
-        communicationChannel.begin()
+    obj.end()
 
-        result = MockResult('task2')
-        task = MockTask(result, 0.003)
-        communicationChannel.put(task)
+##__________________________________________________________________||
+def test_put_multiple(obj):
+    obj.begin()
 
-        communicationChannel.receive()
+    result1 = mock.Mock(name='result1')
+    task1 = mock.Mock(name='task1')
+    task1.return_value = result1
 
-        communicationChannel.end()
+    result2 = mock.Mock(name='result2')
+    task2 = mock.Mock(name='task2')
+    task2.return_value = result2
 
+    result3 = mock.Mock(name='result3')
+    task3 = mock.Mock(name='task3')
+    task3.side_effect = [TypeError, result3]
 
-    def test_receive_without_put(self):
-        communicationChannel = CommunicationChannel0()
-        communicationChannel.begin()
+    result4 = mock.Mock(name='result4')
+    task4 = mock.Mock(name='task4')
+    task4.return_value = result4
 
-        self.assertEqual([ ], communicationChannel.receive())
+    obj.put_multiple([
+        task1,
+        dict(task=task2, args=(123, 'ABC'), kwargs={'A': 34}),
+        dict(task=task3, kwargs={'B': 123}),
+        dict(task=task4, args=(222, 'def')),
+    ])
 
-        communicationChannel.end()
+    assert [mock.call(progressReporter=None)] == task1.call_args_list
+    assert [mock.call(123, 'ABC', A=34, progressReporter=None)] == task2.call_args_list
+    assert [mock.call(B=123, progressReporter=None), mock.call(B=123)] == task3.call_args_list
+    assert [mock.call(222, 'def', progressReporter=None)] == task4.call_args_list
+    assert [result1, result2, result3, result4] == obj.receive()
 
+    obj.end()
 
 ##__________________________________________________________________||

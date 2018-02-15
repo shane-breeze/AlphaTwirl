@@ -1,9 +1,9 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
+# Tai Sakuma <tai.sakuma@gmail.com>
 
 ##__________________________________________________________________||
 import os
-from ReadComponentConfig import ReadComponentConfig
-from Analyzer import Analyzer
+from .ReadComponentConfig import ReadComponentConfig
+from .Analyzer import Analyzer
 
 ##__________________________________________________________________||
 class Component(object):

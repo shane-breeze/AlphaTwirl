@@ -1,8 +1,8 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
+# Tai Sakuma <tai.sakuma@gmail.com>
 from ..misc import mkdir_p
-from ..misc import listToAlignedText
+from ..misc import list_to_aligned_text
 import os
-from ReadCounter import ReadCounter
+from .ReadCounter import ReadCounter
 
 ##__________________________________________________________________||
 class TblBrilCalc(object):
@@ -27,7 +27,7 @@ class TblBrilCalc(object):
 
         try:
             csvfile = filter(lambda row: row[0]!='#', open(path))
-        except IOError, e:
+        except IOError as e:
             import logging
             logging.warning(e)
             return
@@ -49,7 +49,7 @@ class TblBrilCalc(object):
         if len(self._rows) == 1: return
 
         f = self._open(self._outPath)
-        f.write(listToAlignedText(self._rows))
+        f.write(list_to_aligned_text(self._rows))
         self._close(f)
 
     def _open(self, path):

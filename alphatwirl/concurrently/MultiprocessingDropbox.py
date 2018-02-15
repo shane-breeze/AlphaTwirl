@@ -1,4 +1,4 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
+# Tai Sakuma <tai.sakuma@gmail.com>
 import multiprocessing
 from operator import itemgetter
 
@@ -9,7 +9,7 @@ from .Worker import Worker
 
 ##__________________________________________________________________||
 class MultiprocessingDropbox(object):
-    def __init__(self, nprocesses = 16, progressMonitor = None):
+    def __init__(self, nprocesses=16, progressMonitor=None):
 
         if nprocesses <= 0:
             raise ValueError("nprocesses must be at least one: {} is given".format(nprocesses))
@@ -25,7 +25,7 @@ class MultiprocessingDropbox(object):
         self.task_idx = -1 # so it starts from 0
 
     def __repr__(self):
-        return '{}(progressMonitor = {!r}, n_max_workers = {!r}, n_workers = {!r}, n_ongoing_tasks = {!r}, task_idx = {!r})'.format(
+        return '{}(progressMonitor={!r}, n_max_workers={!r}, n_workers={!r}, n_ongoing_tasks={!r}, task_idx={!r})'.format(
             self.__class__.__name__,
             self.progressMonitor,
             self.n_max_workers,
@@ -41,12 +41,12 @@ class MultiprocessingDropbox(object):
             return
 
         # start workers
-        for i in xrange(self.n_workers, self.n_max_workers):
+        for i in range(self.n_workers, self.n_max_workers):
             worker = Worker(
-                task_queue = self.task_queue,
-                result_queue = self.result_queue,
-                progressReporter = self.progressMonitor.createReporter(),
-                lock = self.lock
+                task_queue=self.task_queue,
+                result_queue=self.result_queue,
+                progressReporter=self.progressMonitor.createReporter(),
+                lock=self.lock
             )
             worker.start()
             self.n_workers += 1
@@ -55,6 +55,10 @@ class MultiprocessingDropbox(object):
         self.task_idx += 1
         self.task_queue.put((self.task_idx, package))
         self.n_ongoing_tasks += 1
+
+    def put_multiple(self, packages):
+        for package in packages:
+            self.put(package)
 
     def receive(self):
         messages = [ ] # a list of (task_idx, result)
@@ -65,13 +69,16 @@ class MultiprocessingDropbox(object):
             self.n_ongoing_tasks -= 1
 
         # sort in the order of task_idx
-        messages = sorted(messages, key = itemgetter(0))
+        messages = sorted(messages, key=itemgetter(0))
 
         results = [result for task_idx, result in messages]
         return results, None
 
+    def terminate(self):
+        pass
+
     def close(self):
-        for i in xrange(self.n_workers):
+        for i in range(self.n_workers):
             self.task_queue.put(None) # end workers
         self.task_queue.join()
         self.n_workers = 0

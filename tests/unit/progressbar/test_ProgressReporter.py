@@ -1,74 +1,106 @@
-from alphatwirl.progressbar import ProgressReporter, ProgressReport
-import unittest
+# Tai Sakuma <tai.sakuma@gmail.com>
+import pytest
+import time
+
+try:
+    import unittest.mock as mock
+except ImportError:
+    import mock
+
+from alphatwirl.progressbar import ProgressReporter
 
 ##__________________________________________________________________||
-class MockTime(object):
-    def __init__(self, time): self.time = time
-    def __call__(self): return self.time
+@pytest.fixture()
+def queue():
+    return mock.MagicMock()
+
+@pytest.fixture()
+def mocktime():
+    return mock.MagicMock(return_value = 1000.0)
+
+@pytest.fixture()
+def reporter(queue, mocktime, monkeypatch):
+    monkeypatch.setattr(time, 'time', mocktime)
+    ret = ProgressReporter(queue)
+    return ret
+
+@pytest.fixture()
+def report():
+    return mock.MagicMock(**{'last.return_value': False, 'first.return_value': False})
+
+@pytest.fixture()
+def report_last():
+    return mock.MagicMock(**{'last.return_value': True, 'first.return_value': False})
+
+@pytest.fixture()
+def report_first():
+    return mock.MagicMock(**{'last.return_value': False, 'first.return_value': True})
 
 ##__________________________________________________________________||
-class MockQueue(object):
-    def __init__(self): self.queue = [ ]
-    def put(self, report): self.queue.append(report)
-    def get(self): return self.queue.pop(0)
-    def empty(self): return len(self.queue) == 0
+def test_repr(reporter):
+    repr(reporter)
 
 ##__________________________________________________________________||
-class TestProgressReporter(unittest.TestCase):
+def test_report_no_need_to_report(reporter, monkeypatch, report):
 
-    def test_repr(self):
-        queue = MockQueue()
-        obj = ProgressReporter(queue)
-        repr(obj)
+    mock_report = mock.MagicMock()
+    monkeypatch.setattr(reporter, '_report', mock_report)
 
-    def test_report(self):
-        queue = MockQueue()
-        reporter = ProgressReporter(queue)
+    mock_need_to_report = mock.MagicMock()
+    mock_need_to_report.return_value = False
+    monkeypatch.setattr(reporter, '_need_to_report', mock_need_to_report)
 
-        mocktime = MockTime(1000.0)
-        reporter._time = mocktime
+    reporter.report(report)
 
-        reporter._readTime()
-        self.assertEqual(1000.0, reporter.lastTime)
+    mock_report.assert_not_called()
 
-        mocktime.time = 1000.2
-        reporter._report(ProgressReport(name = "dataset1", done = 124, total = 1552))
+def test_report_need_to_report(reporter, monkeypatch, report):
 
-        report = queue.get()
-        self.assertEqual("dataset1", report.name)
-        self.assertEqual(124, report.done)
-        self.assertEqual(1552, report.total)
+    mock_report = mock.MagicMock()
+    monkeypatch.setattr(reporter, '_report', mock_report)
 
-        self.assertEqual(1000.2, reporter.lastTime)
+    mock_need_to_report = mock.MagicMock()
+    mock_need_to_report.return_value = True
+    monkeypatch.setattr(reporter, '_need_to_report', mock_need_to_report)
 
-    def test_needToReport(self):
-        queue = MockQueue()
-        reporter = ProgressReporter(queue)
+    reporter.report(report)
 
-        interval = reporter.interval
-        self.assertEqual(0.1, interval)
+    mock_report.assert_called_once_with(report)
 
-        mocktime = MockTime(1000.0)
-        reporter._time = mocktime
+##__________________________________________________________________||
+def test__report(reporter, queue, mocktime, report):
 
-        reporter._readTime()
-        self.assertEqual(1000.0, reporter.lastTime)
+    assert 1000.0 == reporter.last_time
 
-        # before the interval passes
-        mocktime.time += 0.1*interval
-        report = ProgressReport(name = "dataset1", done = 124, total = 1552)
-        self.assertFalse(reporter._needToReport(report))
-        self.assertEqual(1000.0, reporter.lastTime)
+    mocktime.return_value = 1000.2
+    reporter._report(report)
 
-        # the last report before the interval passes
-        report = ProgressReport(name = "dataset1", done = 1552, total = 1552)
-        self.assertTrue(reporter._needToReport(report))
-        self.assertEqual(1000.0, reporter.lastTime)
+    assert [mock.call(report)] == queue.put.call_args_list
 
-        # after the interval passes
-        mocktime.time += 1.2*interval
-        report = ProgressReport(name = "dataset2", done = 1022, total = 4000)
-        self.assertTrue(reporter._needToReport(report))
-        self.assertEqual(1000.0, reporter.lastTime)
+    assert 1000.2 == reporter.last_time
+
+def test_need_to_report(reporter, queue, mocktime, report, report_last,
+                      report_first):
+
+    interval = reporter.interval
+    assert 0.1 == interval
+
+    assert 1000.0 == reporter.last_time
+
+    # before the interval passes
+    mocktime.return_value += 0.1*interval
+    assert not reporter._need_to_report(report)
+
+    # the first report before the interval passes
+    assert reporter._need_to_report(report_first)
+
+    # the last report before the interval passes
+    assert reporter._need_to_report(report_last)
+
+    # after the interval passes
+    mocktime.return_value += 1.2*interval
+    assert reporter._need_to_report(report)
+
+    assert 1000.0 == reporter.last_time
 
 ##__________________________________________________________________||

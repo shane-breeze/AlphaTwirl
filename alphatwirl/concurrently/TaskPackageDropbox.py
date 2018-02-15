@@ -1,4 +1,4 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
+# Tai Sakuma <tai.sakuma@gmail.com>
 import logging
 import time
 import os
@@ -17,82 +17,100 @@ class TaskPackageDropbox(object):
     that execute the tasks.
 
     """
-    def __init__(self, workingArea, dispatcher, sleep = 5):
+    def __init__(self, workingArea, dispatcher, sleep=5):
         self.workingArea = workingArea
         self.dispatcher = dispatcher
         self.sleep = sleep
 
     def __repr__(self):
-        return '{}(workingArea = {!r}, dispatcher = {!r}, sleep = {!r})'.format(
+        name_value_pairs = (
+            ('workingArea', self.workingArea),
+            ('dispatcher', self.dispatcher),
+        )
+        return '{}({})'.format(
             self.__class__.__name__,
-            self.workingArea,
-            self.dispatcher,
-            self.sleep
+            ', '.join(['{}={!r}'.format(n, v) for n, v in name_value_pairs]),
         )
 
     def open(self):
         self.workingArea.open()
-        self.runid_package_index_map = { }
+        self.runid_pkgidx_map = { }
 
     def put(self, package):
-        package_index = self.workingArea.put_package(package)
-        runid = self.dispatcher.run(self.workingArea, package_index)
-        self.runid_package_index_map[runid] = package_index
+
+        pkgidx = self.workingArea.put_package(package)
+
+        logger = logging.getLogger(__name__)
+        logger.info('submitting {}'.format(self.workingArea.package_path(pkgidx)))
+
+        runid = self.dispatcher.run(self.workingArea, pkgidx)
+        self.runid_pkgidx_map[runid] = pkgidx
+
+    def put_multiple(self, packages):
+        pkgidxs = [self.workingArea.put_package(p) for p in packages ]
+
+        logger = logging.getLogger(__name__)
+        logger.info('submitting {}'.format(
+            ', '.join(['{}'.format(self.workingArea.package_path(i)) for i in pkgidxs])
+        ))
+        runids = self.dispatcher.run_multiple(self.workingArea, pkgidxs)
+        self.runid_pkgidx_map.update(zip(runids, pkgidxs))
 
     def receive(self):
-        pkgidx_result_pairs = [ ] # a list of (package_index, _result)
-        try:
-            while self.runid_package_index_map:
+        pkgidx_result_pairs = [ ] # a list of (pkgidx, _result)
+        while self.runid_pkgidx_map:
 
-                finished_runid = self.dispatcher.poll()
-                # e.g., [1001, 1003]
+            pairs = self._collect_pkgidx_result_pairs_of_finished_tasks()
+            pkgidx_result_pairs.extend(pairs)
 
-                runid_pkgidx = [(i, self.runid_package_index_map.pop(i)) for i in finished_runid]
-                # e.g., [(1001, 0), (1003, 2)]
+            time.sleep(self.sleep)
 
-                runid_pkgidx_result = [(ri, pi, self.workingArea.collect_result(pi)) for ri, pi in runid_pkgidx]
-                # e.g., [(1001, 0, result0), (1003, 2, None)] # None indicates the job failed
+        # sort in the order of pkgidx
+        pkgidx_result_pairs = sorted(pkgidx_result_pairs, key=itemgetter(0))
 
-                failed = [e for e in runid_pkgidx_result if e[2] is None]
-                # e.g., [(1003, 2, None)]
+        results = [result for i, result in pkgidx_result_pairs]
+        return results
 
-                succeeded = [e for e in runid_pkgidx_result if e not in failed]
-                # e.g., [(1001, 0, result0)]
+    def _collect_pkgidx_result_pairs_of_finished_tasks(self):
 
-                # let the dispatcher know the failed runid
-                failed_runid = [e[0] for e in failed]
-                self.dispatcher.failed_runids(failed_runid)
+        finished_runid = self.dispatcher.poll()
+        # e.g., [1001, 1003]
 
-                # rerun failed jobs
-                for _, pkgidx, _ in failed:
-                    logger = logging.getLogger(__name__)
-                    logger.warning('resubmitting {}'.format(self.workingArea.package_path(pkgidx)))
+        runid_pkgidx = [(i, self.runid_pkgidx_map.pop(i)) for i in finished_runid]
+        # e.g., [(1001, 0), (1003, 2)]
 
-                    runid = self.dispatcher.run(self.workingArea, pkgidx)
-                    self.runid_package_index_map[runid] = pkgidx
+        runid_pkgidx_result = [(ri, pi, self.workingArea.collect_result(pi)) for ri, pi in runid_pkgidx]
+        # e.g., [(1001, 0, result0), (1003, 2, None)] # None indicates the job failed
 
-                pairs = [(pkgidx, result) for runid, pkgidx, result in succeeded]
-                # e.g., [(0, result0)] # only successful ones
+        failed = [e for e in runid_pkgidx_result if e[2] is None]
+        # e.g., [(1003, 2, None)]
 
-                pkgidx_result_pairs.extend(pairs)
+        succeeded = [e for e in runid_pkgidx_result if e not in failed]
+        # e.g., [(1001, 0, result0)]
 
-                time.sleep(self.sleep)
+        # let the dispatcher know the failed runid
+        failed_runid = [e[0] for e in failed]
+        self.dispatcher.failed_runids(failed_runid)
 
-        except KeyboardInterrupt:
+        # rerun failed jobs
+        for _, pkgidx, _ in failed:
             logger = logging.getLogger(__name__)
-            logger.warning('received KeyboardInterrupt')
-            self.dispatcher.terminate()
+            logger.warning('resubmitting {}'.format(self.workingArea.package_path(pkgidx)))
 
-        # sort in the order of package_index
-        pkgidx_result_pairs = sorted(pkgidx_result_pairs, key = itemgetter(0))
+            try: self.dispatcher.walltime = self.dispatcher.walltime*2
+            except AttributeError: pass
+            runid = self.dispatcher.run(self.workingArea, pkgidx)
+            self.runid_pkgidx_map[runid] = pkgidx
 
         cwd = os.getcwd()
         os.chdir(os.path.join(cwd, self.workingArea.path, "results"))
         self.hadd_files(pkgidx_result_pairs)
         os.chdir(cwd)
 
-        results = [result for i, result in pkgidx_result_pairs]
-        return results, self.workingArea.path
+        pairs = [(pkgidx, result) for runid, pkgidx, result in succeeded]
+        # e.g., [(0, result0)] # only successful ones
+
+        return pairs, self.workingArea.path
 
     def hadd_files(self, pkgidx_result_pairs=None):
         task_paths = ['task_{:05d}'.format(package_id) for package_id,_ in pkgidx_result_pairs]
@@ -132,8 +150,10 @@ class TaskPackageDropbox(object):
             logger.info("Create dataframe in {}".format(dffile))
             f.write(df.to_string())
 
-    def close(self):
+    def terminate(self):
         self.dispatcher.terminate()
+
+    def close(self):
         self.workingArea.close()
 
 ##__________________________________________________________________||

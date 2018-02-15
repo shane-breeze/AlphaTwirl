@@ -1,4 +1,4 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
+# Tai Sakuma <tai.sakuma@gmail.com>
 
 ##__________________________________________________________________||
 class Events(object):
@@ -75,7 +75,7 @@ class Events(object):
         return self
 
     def __iter__(self):
-        for self.iEvent in xrange(self.nEvents):
+        for self.iEvent in range(self.nEvents):
             self.tree.GetEntry(self.start + self.iEvent)
             yield self
         self.iEvent = -1

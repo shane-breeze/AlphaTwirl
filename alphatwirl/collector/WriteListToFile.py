@@ -1,6 +1,6 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
+# Tai Sakuma <tai.sakuma@gmail.com>
 from ..misc import mkdir_p
-from ..misc import listToAlignedText
+from ..misc import list_to_aligned_text
 import os
 
 ##__________________________________________________________________||
@@ -17,11 +17,13 @@ class WriteListToFile(object):
     def deliver(self, results):
         if results is None: return
         f = self._open(self._outPath)
-        f.write(listToAlignedText(results))
+        f.write(list_to_aligned_text(results).encode())
         self._close(f)
 
     def _open(self, path):
-        mkdir_p(os.path.dirname(path))
+        directory = os.path.dirname(path)
+        if directory:
+            mkdir_p(directory)
         return open(path, 'w')
 
     def _close(self, file): file.close()

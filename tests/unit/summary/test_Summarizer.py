@@ -1,5 +1,6 @@
 import unittest
 import copy
+import sys
 
 import numpy as np
 
@@ -53,12 +54,18 @@ class TestSummarizer(unittest.TestCase):
         }
         self.assertEqual(expected, obj.results())
 
+    def test_key(self):
+        obj = Summarizer(Summary = Sum)
+        obj.add_key('A')
+        self.assertEqual(['A'], list(obj.keys()))
+
     def test_to_tuple_list(self):
         obj = Summarizer(Summary = Sum)
         obj.add(('A', ), (12, ))
         obj.add(('B', ), (20, ))
         self.assertEqual([('A', 12), ('B', 20)], obj.to_tuple_list())
 
+    @unittest.skipUnless(sys.version_info[0] == 2, "skip for Python 3")
     def test_to_tuple_list_key_not_tuple(self):
         obj = Summarizer(Summary = Sum)
         obj.add('A', (12, )) # the keys are not a tuple

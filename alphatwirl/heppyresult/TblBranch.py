@@ -1,17 +1,11 @@
-# Tai Sakuma <tai.sakuma@cern.ch>
-from ..misc import mkdir_p
-from ..misc import listToAlignedText
+# Tai Sakuma <tai.sakuma@gmail.com>
 import os
 from operator import itemgetter
 import ROOT
 
-##__________________________________________________________________||
-def IsROOTNullPointer(tobject):
-    try:
-        tobject.GetName()
-        return False
-    except ReferenceError:
-        return True
+from ..misc import mkdir_p
+from ..misc import list_to_aligned_text
+from ..roottree import inspect_tree
 
 ##__________________________________________________________________||
 class TblBranch(object):
@@ -40,28 +34,18 @@ class TblBranch(object):
         file = ROOT.TFile.Open(inputPath)
         tree = file.Get(self.treeName)
 
-        for leaf in tree.GetListOfLeaves():
-            leafcount = leaf.GetLeafCount()
-            isArray = not IsROOTNullPointer(leafcount)
-            branchName = leaf.GetName()
+        tree_info = inspect_tree(tree)
+
+        for leaf_info in tree_info['leaves']:
+            leaf_def = {k:leaf_info[k] for k in ('name', 'type', 'isarray', 'countname', 'title')}
+            branchName = leaf_def['name']
             if not branchName in self.branchDict:
                 self.branchOrder.append(branchName)
-                branch_entry = { }
-                branch_entry['name'] = branchName
-                branch_entry['type'] = leaf.GetTypeName()
-                branch_entry['isarray'] = '1' if isArray else '0'
-                branch_entry['countname'] = leafcount.GetName() if isArray else None
-                branch_entry['components'] = [ ]
-                branch_entry['title'] = leaf.GetBranch().GetTitle()
-                self.branchDict[branchName] = branch_entry
-            component_entry = { }
-            zipbytes = leaf.GetBranch().GetZipBytes()/1024.0/1024.0 # MB
-            totalsize = leaf.GetBranch().GetTotalSize()/1024.0/1024.0 # MB
-            component_entry['name'] = component.name
-            component_entry['size'] = zipbytes
-            component_entry['uncompressed_size'] = totalsize
-            component_entry['compression_factor'] = totalsize/zipbytes if zipbytes > 0 else 0
-            self.branchDict[branchName]['components'].append(component_entry)
+                leaf_def['components'] = [ ]
+                self.branchDict[branchName] = leaf_def
+            leaf_size = {k:leaf_info[k] for k in ('size', 'uncompressed_size', 'compression_factor')}
+            leaf_size['name'] = component.name
+            self.branchDict[branchName]['components'].append(leaf_size)
 
     def end(self):
 
@@ -80,11 +64,11 @@ class TblBranch(object):
                 row.append(bentry['isarray'])
                 row.append(bentry['countname'])
             if self.addSize:
-                row.append('{:10.6f}'.format(size))
-                row.append('{:10.6f}'.format(usize))
-                row.append('{:10.2f}'.format(cf))
+                row.append(size)
+                row.append(usize)
+                row.append(cf)
             if self.addTitle:
-                row.append('"{}"'.format(bentry['title']))
+                row.append(bentry['title'])
             results.append(row)
 
         columns = ['name']
@@ -97,12 +81,20 @@ class TblBranch(object):
 
         results.insert(0, columns)
 
-        formatDict = { }
+        format_dict = { }
+        if self.addSize:
+            format_dict.update({
+                'size':'{:.6f}',
+                'uncompressed_size':'{:.6f}',
+                'compression_factor':'{:.2f}'
+            })
+
+        left_align_last_column = False
         if self.addTitle:
-            formatDict.update({'title':'{}'})
+            left_align_last_column = True
 
         f = self._open(self.outPath)
-        f.write(listToAlignedText(results, formatDict))
+        f.write(list_to_aligned_text(results, format_dict, left_align_last_column))
         self._close(f)
 
     def _open(self, path):
