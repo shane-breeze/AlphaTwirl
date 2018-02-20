@@ -138,7 +138,7 @@ class SGEJobSubmitter(object):
 
         clusterids = clusterprocids2clusterids(self.clusterprocids_outstanding)
         clusterprocid_status_list = query_status_for(clusterids)
-        # e.g., [['1730126', 2], ['1730127', 2], ['1730129', 1], ['1730130', 1]]
+        # e.g. [('2448775.1',2), ('2448775.2',2), ('2448775.3',2), ('2448775.4',2), ('2448769.1',6), ('2448769.2',6), ('2448769.3',6)
 
 
         if clusterprocid_status_list:
