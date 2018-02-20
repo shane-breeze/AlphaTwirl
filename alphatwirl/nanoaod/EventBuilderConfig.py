@@ -1,5 +1,3 @@
-# Tai Sakuma <tai.sakuma@gmail.com>
-
 ##__________________________________________________________________||
 import collections
 
