@@ -17,9 +17,6 @@ class All(object):
             self.selections
         )
 
-    def set_args(self, args_dict):
-        pass
-
     def add(self, selection):
         self.selections.append(selection)
 
@@ -56,9 +53,6 @@ class Any(object):
             self.selections
         )
 
-    def set_args(self, args_dict):
-        pass
-
     def add(self, selection):
         self.selections.append(selection)
 
@@ -94,9 +88,6 @@ class Not(object):
             self.name,
             self.selection
         )
-
-    def set_args(self, args_dict):
-        pass
 
     def begin(self, event):
         if hasattr(self.selection, 'begin'): self.selection.begin(event)
