@@ -11,24 +11,25 @@ class NanoAODResult(object):
 
     Args:
         component_df (pd.DataFrame): the dataframe of components on each row
-        the list of the names of the components to read. If not given, all components except the ones listed in `excludeList` will be read.
     """
 
     def __init__(self, component_df):
-        component_df["name"] = component_df[["dataset","era"]].apply("_".join, axis=1) # Name for the progress bar
+        # Name for the progress bar
+        component_df["name"] = component_df[["dataset","era"]].apply("_".join,
+                                                                     axis=1)
         self.components_df = component_df
 
     def components(self):
         comps = []
         for row in self.components_df.itertuples():
             comp_dict = dict(
-                name      = row.name
-                eventtype = row.eventtype
-                dataset   = row.dataset
-                era       = row.era
-                nevents   = row.nevents
-                nfiles    = row.nfiles
-                files     = row.files
+                name      = row.name,
+                eventtype = row.eventtype,
+                dataset   = row.dataset,
+                era       = row.era,
+                nevents   = row.nevents,
+                nfiles    = row.nfiles,
+                files     = row.files,
             )
 
             # MC related information. Just XS for now

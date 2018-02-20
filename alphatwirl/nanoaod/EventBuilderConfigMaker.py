@@ -27,7 +27,7 @@ class EventBuilderConfigMaker(object):
     def file_list_in(self, dataset, maxFiles = -1):
         if maxFiles < 0:
             return dataset.files
-        return dataset.files[:min(maxFiles, len(files))]
+        return dataset.files[:min(maxFiles, len(dataset.files))]
 
     def nevents_in_file(self, path):
         file = ROOT.TFile.Open(path)
