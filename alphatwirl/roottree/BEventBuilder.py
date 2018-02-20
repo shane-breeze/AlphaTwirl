@@ -1,6 +1,5 @@
 # Tai Sakuma <tai.sakuma@gmail.com>
-#import ROOT
-from rootpy.io import root_open
+import ROOT
 from .BEvents import BEvents
 
 ##__________________________________________________________________||
@@ -15,13 +14,9 @@ class BEventBuilder(object):
         )
 
     def __call__(self):
-        #chain = ROOT.TChain(self.config.treeName)
-        #for path in self.config.inputPaths:
-        #    chain.Add(path)
-        if len(self.config.inputPaths)>1:
-            raise ValueError("Too many input paths. Implementation only works for 1 file per process")
-        file_ = root_open(self.config.inputPaths[0])
-        chain = file_.Get(self.config.treeName)
+        chain = ROOT.TChain(self.config.treeName)
+        for path in self.config.inputPaths:
+            chain.Add(path)
         events = BEvents(chain, self.config.maxEvents, self.config.start)
         events.config = self.config
         return events
