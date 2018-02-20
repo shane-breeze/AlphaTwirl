@@ -16,7 +16,7 @@ class CommunicationChannel0(object):
 
     """
 
-    def __init__(self, progressMonitor = None):
+    def __init__(self, progressMonitor=None):
         self.progressMonitor = NullProgressMonitor() if progressMonitor is None else progressMonitor
         self.results = [ ]
 
@@ -30,15 +30,27 @@ class CommunicationChannel0(object):
 
     def put(self, task, *args, **kwargs):
         try:
-            result = task(progressReporter = self.progressReporter, *args, **kwargs)
+            result = task(progressReporter=self.progressReporter, *args, **kwargs)
         except TypeError:
             result = task(*args, **kwargs)
         self.results.append(result)
+
+    def put_multiple(self, task_args_kwargs_list):
+        for t in task_args_kwargs_list:
+            try:
+                task = t['task']
+                args = t.get('args', ())
+                kwargs = t.get('kwargs', {})
+                self.put(task, *args, **kwargs)
+            except TypeError:
+                self.put(t)
 
     def receive(self):
         ret = self.results[:]
         del self.results[:]
         return ret
+
+    def terminate(self): pass
 
     def end(self): pass
 
