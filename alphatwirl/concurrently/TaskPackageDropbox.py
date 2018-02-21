@@ -54,12 +54,19 @@ class TaskPackageDropbox(object):
 
     def receive(self):
         pkgidx_result_pairs = [ ] # a list of (pkgidx, _result)
-        while self.runid_pkgidx_map:
 
-            pairs = self._collect_pkgidx_result_pairs_of_finished_tasks()
-            pkgidx_result_pairs.extend(pairs)
+        try:
+            while self.runid_pkgidx_map:
 
-            time.sleep(self.sleep)
+                pairs = self._collect_pkgidx_result_pairs_of_finished_tasks()
+                pkgidx_result_pairs.extend(pairs)
+
+                time.sleep(self.sleep)
+
+        except KeyboardInterrupt:
+            logger = logging.getLogger(__name__)
+            logger.warning('received keyboard interrupt')
+            self.dispatcher.terminate()
 
         # sort in the order of pkgidx
         pkgidx_result_pairs = sorted(pkgidx_result_pairs, key=itemgetter(0))
