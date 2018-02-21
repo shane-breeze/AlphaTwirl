@@ -82,7 +82,7 @@ class SGEJobSubmitter(object):
             walltime = self.walltime,
         )
 
-        s = "#!/bin/bash\n\n"
+        s = "#!/bin/bash\n\nulimit -c 0\n\n"
         for idx, package_path in enumerate(package_paths):
             s += "cmd1[{index}]='cd {path}'\n".format(
                 index=idx+1,
