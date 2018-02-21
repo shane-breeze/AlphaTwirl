@@ -1,4 +1,3 @@
-# Tai Sakuma <tai.sakuma@gmail.com>
 import os
 
 import ROOT
@@ -26,11 +25,9 @@ class EventBuilderConfigMaker(object):
         return config
 
     def file_list_in(self, dataset, maxFiles = -1):
-        #files = [os.path.join(dataset.path,p) for p in os.listdir(dataset.path) if ".root" in p]
-        #files = [os.path.join(dataset.path), "*.root"]
         if maxFiles < 0:
             return dataset.files
-        return dataset.files[:min(maxFiles, len(files))]
+        return dataset.files[:min(maxFiles, len(dataset.files))]
 
     def nevents_in_file(self, path):
         file = ROOT.TFile.Open(path)

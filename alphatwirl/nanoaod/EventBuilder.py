@@ -1,4 +1,3 @@
-# Tai Sakuma <tai.sakuma@gmail.com>
 from ..roottree import BEventBuilder as BaseEventBuilder
 
 ##__________________________________________________________________||
@@ -16,6 +15,8 @@ class EventBuilder(object):
 
     def __call__(self):
         events = self.baseBuilder()
+
+        # Add the row in the component dataframe to the event
         events.component = self.config.component
         return events
 

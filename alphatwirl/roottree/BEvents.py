@@ -18,8 +18,9 @@ class BEvents(Events):
         )
 
     def __getattr__(self, name):
-        if name.startswith("__"):
-            raise AttributeError(name)
+        # If, for some reason, branches and buildBranch are not defined
+        if name in ["branches","buildBranch"]:
+            raise AttributeError('{!r} has no attribute "{}"'.format(self, name))
 
         if name in self.__dict__["branches"]:
             return self.branches[name]
