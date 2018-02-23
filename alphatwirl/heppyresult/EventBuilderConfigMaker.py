@@ -1,5 +1,6 @@
 # Tai Sakuma <tai.sakuma@gmail.com>
 import os
+import glob
 
 import ROOT
 
@@ -30,7 +31,7 @@ class EventBuilderConfigMaker(object):
 
     def file_list_in(self, dataset, maxFiles = -1):
         component = dataset
-        files = [os.path.join(getattr(component, self.analyzerName).path, self.fileName)]
+        files = [f for f in glob.glob(os.path.join(getattr(component, self.analyzerName).path, self.fileName))]
         if maxFiles < 0:
             return files
         return files[:min(maxFiles, len(files))]

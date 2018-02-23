@@ -58,18 +58,21 @@ class TaskPackageDropbox(object):
 
     def receive(self):
         pkgidx_result_pairs = [ ] # a list of (pkgidx, _result)
-        while self.runid_pkgidx_map:
-
-            pairs = self._collect_pkgidx_result_pairs_of_finished_tasks()
-            pkgidx_result_pairs.extend(pairs)
-
-            time.sleep(self.sleep)
+        try:
+            while self.runid_pkgidx_map:
+                pairs = self._collect_pkgidx_result_pairs_of_finished_tasks()
+                pkgidx_result_pairs.extend(pairs)
+                time.sleep(self.sleep)
+        except KeyboardInterrupt:
+            logger = logging.getLogger(__name__)
+            logger.warning('received KeyboardInterrupt')
+            self.dispatcher.terminate()
 
         # sort in the order of pkgidx
         pkgidx_result_pairs = sorted(pkgidx_result_pairs, key=itemgetter(0))
 
         results = [result for i, result in pkgidx_result_pairs]
-        return results
+        return results, self.workingArea.path
 
     def _collect_pkgidx_result_pairs_of_finished_tasks(self):
 
@@ -102,15 +105,15 @@ class TaskPackageDropbox(object):
             runid = self.dispatcher.run(self.workingArea, pkgidx)
             self.runid_pkgidx_map[runid] = pkgidx
 
-        cwd = os.getcwd()
-        os.chdir(os.path.join(cwd, self.workingArea.path, "results"))
-        self.hadd_files(pkgidx_result_pairs)
-        os.chdir(cwd)
-
         pairs = [(pkgidx, result) for runid, pkgidx, result in succeeded]
         # e.g., [(0, result0)] # only successful ones
 
-        return pairs, self.workingArea.path
+        cwd = os.getcwd()
+        os.chdir(os.path.join(cwd, self.workingArea.path, "results"))
+        self.hadd_files(pairs)
+        os.chdir(cwd)
+
+        return pairs
 
     def hadd_files(self, pkgidx_result_pairs=None):
         task_paths = ['task_{:05d}'.format(package_id) for package_id,_ in pkgidx_result_pairs]

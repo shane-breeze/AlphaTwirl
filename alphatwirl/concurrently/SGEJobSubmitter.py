@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import os, sys
-import argparse
 import subprocess
 import collections
 import time
@@ -83,7 +82,7 @@ class SGEJobSubmitter(object):
             walltime = self.walltime,
         )
 
-        s = "#!/bin/bash\n\n"
+        s = "#!/bin/bash\n\nulimit -c 0\n\n"
         for idx, package_path in enumerate(package_paths):
             s += "cmd1[{index}]='cd {path}'\n".format(
                 index=idx+1,
@@ -139,7 +138,7 @@ class SGEJobSubmitter(object):
 
         clusterids = clusterprocids2clusterids(self.clusterprocids_outstanding)
         clusterprocid_status_list = query_status_for(clusterids)
-        # e.g., [['1730126', 2], ['1730127', 2], ['1730129', 1], ['1730130', 1]]
+        # e.g. [('2448775.1',2), ('2448775.2',2), ('2448775.3',2), ('2448775.4',2), ('2448769.1',6), ('2448769.2',6), ('2448769.3',6)
 
 
         if clusterprocid_status_list:

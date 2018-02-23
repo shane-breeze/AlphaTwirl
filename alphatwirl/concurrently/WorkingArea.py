@@ -71,6 +71,7 @@ class WorkingArea(object):
 
         with open(err_path, 'r') as f:
             content = f.read().strip()
+            content = "\n".join([l for l in content.splitlines() if "nbins is <=0" not in l])
             if len(content) > 0:
                 logger = logging.getLogger(__name__)
                 logger.error(content)
