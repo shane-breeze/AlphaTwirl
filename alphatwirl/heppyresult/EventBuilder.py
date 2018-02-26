@@ -1,22 +1,21 @@
 # Tai Sakuma <tai.sakuma@gmail.com>
-from ..roottree import BEventBuilder as BaseEventBuilder
+from alphatwirl.roottree import BEventBuilder
+from alphatwirl.misc.deprecation import atdeprecated
 
 ##__________________________________________________________________||
+@atdeprecated(msg='use alphatwirl.roottree.BEventBuilder instead.')
 class EventBuilder(object):
     def __init__(self, config):
-        self.baseBuilder = BaseEventBuilder(config.base)
+        self.builder = BEventBuilder(config)
         self.config = config
 
     def __repr__(self):
-        return '{}(baseBuilder = {!r}, config = {!r})'.format(
+        return '{}(config={!r})'.format(
             self.__class__.__name__,
-            self.baseBuilder,
             self.config
         )
 
     def __call__(self):
-        events = self.baseBuilder()
-        events.component = self.config.component
-        return events
+        return self.builder()
 
 ##__________________________________________________________________||

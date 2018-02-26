@@ -1,5 +1,4 @@
 # Tai Sakuma <tai.sakuma@gmail.com>
-import unittest
 import os
 import collections
 import gzip
@@ -21,8 +20,9 @@ MockResult = collections.namedtuple('MockResult', 'name')
 
 @pytest.fixture()
 def obj(tmpdir_factory):
-    tmpdir = tmpdir_factory.mktemp('')
-    return WorkingArea(dir = str(tmpdir), python_modules = ('alphatwirl', ),
+    tmpdir = str(tmpdir_factory.mktemp(''))
+    tmpdir = os.path.join(tmpdir, '_ccsp_temp')
+    return WorkingArea(dir = tmpdir, python_modules = ('alphatwirl', ),
                        exclusions = "random_junk_string")
 
 ##__________________________________________________________________||
@@ -44,7 +44,7 @@ def test_put_package(obj):
 
     obj.open()
 
-    package1 = MockPackage(name = 'package1')
+    package1 = MockPackage(name='package1')
     package_index = obj.put_package(package1)
     package_path = obj.package_path(package_index)
     package_fullpath = os.path.join(obj.path, package_path)
@@ -56,7 +56,7 @@ def test_collect_result(obj):
 
     obj.open()
 
-    result = MockResult(name = 'result1')
+    result = MockResult(name='result1')
 
     package_index = 9
     dirname = 'task_{:05d}'.format(package_index)
@@ -67,7 +67,7 @@ def test_collect_result(obj):
        pickle.dump(result, f)
        f.close()
 
-    assert result == obj.collect_result(package_index = package_index)
+    assert result == obj.collect_result(package_index=package_index)
 
 def test_collect_result_ioerror(obj):
    # the file 'result.p.gz' doesn't exist
@@ -77,7 +77,7 @@ def test_collect_result_ioerror(obj):
 
     # logging.getLogger('alphatwirl').setLevel(logging.DEBUG)
     package_index = 9
-    assert obj.collect_result(package_index = package_index) is None
+    assert obj.collect_result(package_index=package_index) is None
 
 def test_collect_result_eoferror(obj):
    # the file 'result.p.gz' is empty.
@@ -94,7 +94,7 @@ def test_collect_result_eoferror(obj):
     with open(result_path, 'wb') as f:
        f.close()
 
-    assert obj.collect_result(package_index = package_index) is None
+    assert obj.collect_result(package_index=package_index) is None
 
 ##__________________________________________________________________||
 

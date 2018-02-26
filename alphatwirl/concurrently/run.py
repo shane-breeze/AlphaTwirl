@@ -6,7 +6,11 @@ import os, sys
 import errno
 import argparse
 import tarfile
+import signal
 import gzip
+import cProfile, pstats
+
+from io import StringIO, BytesIO
 
 try:
     import cPickle as pickle
@@ -15,8 +19,13 @@ except:
 
 ##__________________________________________________________________||
 parser = argparse.ArgumentParser()
-parser.add_argument('paths', nargs = argparse.REMAINDER, help = 'paths to task packages')
+parser.add_argument('paths', nargs=argparse.REMAINDER, help='paths to task packages')
+parser.add_argument('--profile', action='store_true', help='run profile')
+parser.add_argument('--profile-out-path', default=None, help='path to write the result of profile')
 args = parser.parse_args()
+
+##__________________________________________________________________||
+signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 ##__________________________________________________________________||
 def main():
@@ -64,7 +73,7 @@ def print_logs(error):
         '{:>20}: {}'.format('os.environ', os.environ)
 
     ]
-    print('\n'.join(messages), file = sys.stderr)
+    print('\n'.join(messages), file=sys.stderr)
 
 ##__________________________________________________________________||
 def setup():
@@ -131,8 +140,8 @@ def compose_result_path(package_path):
 ##__________________________________________________________________||
 def store_result(result, result_path):
     mkdir_p(os.path.dirname(result_path))
-    f = gzip.open(result_path, 'wb')
-    pickle.dump(result, f, protocol = pickle.HIGHEST_PROTOCOL)
+    with gzip.open(result_path, 'wb') as f:
+        pickle.dump(result, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 ##__________________________________________________________________||
 def mkdir_p(path):
@@ -145,5 +154,37 @@ def mkdir_p(path):
         else: raise
 
 ##__________________________________________________________________||
+def print_profile_func(func, profile_out_path=None):
+    result = profile_func(func)
+    if profile_out_path is None:
+        print(result)
+    else:
+        with open(profile_out_path, 'w') as f:
+            f.write(result)
+
+##__________________________________________________________________||
+def profile_func(func):
+    pr = cProfile.Profile()
+    pr.enable()
+    func()
+    pr.disable()
+    sortby = 'cumulative'
+    try:
+        s = StringIO()
+        pstats.Stats(pr, stream=s).strip_dirs().sort_stats(sortby).print_stats()
+    except TypeError:
+        s = BytesIO()
+        pstats.Stats(pr, stream=s).strip_dirs().sort_stats(sortby).print_stats()
+    return s.getvalue()
+
+##__________________________________________________________________||
 if __name__ == '__main__':
-    main()
+    if args.profile:
+        print_profile_func(
+            func=main,
+            profile_out_path=args.profile_out_path
+        )
+    else:
+        main()
+
+##__________________________________________________________________||

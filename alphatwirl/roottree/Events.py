@@ -35,7 +35,7 @@ class Events(object):
 
     """
 
-    def __init__(self, tree, maxEvents = -1, start = 0):
+    def __init__(self, tree, maxEvents=-1, start=0):
 
         if start < 0:
             raise ValueError("start must be greater than or equal to zero: {} is given".format(start))
@@ -51,6 +51,9 @@ class Events(object):
         self.start = start
         self.iEvent = -1
 
+    def __len__(self):
+        return self.nEvents
+
     def __repr__(self):
         return '{}({})'.format(
             self.__class__.__name__,
@@ -58,7 +61,7 @@ class Events(object):
         )
 
     def _repr_contents(self):
-        return 'tree = {!r}, maxEvents = {!r}, start = {!r}, nEvents = {!r}, iEvent = {!r}'.format(
+        return 'tree = {!r}, maxEvents={!r}, start={!r}, nEvents={!r}, iEvent={!r}'.format(
             self.tree,
             self.maxEvents,
             self.start,

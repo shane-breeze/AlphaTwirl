@@ -14,6 +14,8 @@ try:
 except:
    import pickle
 
+import alphatwirl
+
 ##__________________________________________________________________||
 class WorkingArea(object):
     """
@@ -32,7 +34,7 @@ class WorkingArea(object):
             self.exclusions.update(exclusions)
 
     def __repr__(self):
-        return '{}(topdir = {!r}, python_modules = {!r}, path = {!r}, last_package_index = {!r})'.format(
+        return '{}(topdir={!r}, python_modules={!r}, path={!r}, last_package_index={!r})'.format(
             self.__class__.__name__,
             self.topdir, self.python_modules, self.path, self.last_package_index
         )
@@ -53,9 +55,9 @@ class WorkingArea(object):
         package_fullpath = os.path.join(self.path, package_path)
         # e.g., '{path}/tpd_20161129_122841_HnpcmF/task_00009.p.gz'
 
-        f = gzip.open(package_fullpath, 'wb')
-        pickle.dump(package, f, protocol = pickle.HIGHEST_PROTOCOL)
-        f.close()
+        with gzip.open(package_fullpath, 'wb') as f:
+           pickle.dump(package, f, protocol=pickle.HIGHEST_PROTOCOL)
+           f.close()
 
         return package_index
 
@@ -71,8 +73,8 @@ class WorkingArea(object):
         # e.g., '{path}/tpd_20161129_122841_HnpcmF/results/task_00009/result.p.gz'
 
         try:
-           f = gzip.open(result_path, 'rb')
-           result = pickle.load(f)
+           with gzip.open(result_path, 'rb') as f:
+              result = pickle.load(f)
         except (IOError, EOFError) as e:
            logger = logging.getLogger(__name__)
            logger.warning(e)
@@ -86,10 +88,12 @@ class WorkingArea(object):
 
     def _prepare_dir(self, dir):
 
+        alphatwirl.mkdir_p(dir)
+
         prefix = 'tpd_{:%Y%m%d_%H%M%S}_'.format(datetime.datetime.now())
         # e.g., 'tpd_20161129_122841_'
 
-        path = tempfile.mkdtemp(prefix = prefix, dir = dir)
+        path = tempfile.mkdtemp(prefix=prefix, dir=dir)
         # e.g., '{path}/tpd_20161129_122841_HnpcmF'
 
         # copy run.py to the task dir
@@ -114,7 +118,7 @@ class WorkingArea(object):
             imp_tuple = imp.find_module(module)
             path = imp_tuple[1]
             arcname = os.path.join('python_modules', module + imp_tuple[2][0])
-            tar.add(path, arcname = arcname, filter = tar_filter)
+            tar.add(path, arcname=arcname, filter=tar_filter)
         tar.close()
 
 ##__________________________________________________________________||
