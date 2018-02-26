@@ -8,7 +8,10 @@ except ImportError:
 
 from .load_fwlite import load_fwlite
 
+from alphatwirl.misc.deprecation import atdeprecated
+
 ##__________________________________________________________________||
+@atdeprecated(msg='alphatwirl.cmsedm has been moved to https://github.com/alphatwirl/atcmsedm.')
 class CMSEDMEvents(object):
     def __init__(self, paths, maxEvents = -1, start = 0):
         load_fwlite()
@@ -27,6 +30,9 @@ class CMSEDMEvents(object):
             self.nEvents = nevents_in_dataset - start
         self.start = start
         self.iEvent = -1
+
+    def __len__(self):
+        return self.nEvents
 
     def __repr__(self):
         return '{}(edm_event = {!r}, maxEvents = {!r}, start = {!r}, nEvents = {!r}, iEvent = {!r})'.format(

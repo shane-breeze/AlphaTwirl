@@ -8,6 +8,9 @@ import argparse
 import tarfile
 import signal
 import gzip
+import cProfile, pstats
+
+from io import StringIO, BytesIO
 
 try:
     import cPickle as pickle
@@ -16,7 +19,9 @@ except:
 
 ##__________________________________________________________________||
 parser = argparse.ArgumentParser()
-parser.add_argument('paths', nargs = argparse.REMAINDER, help = 'paths to task packages')
+parser.add_argument('paths', nargs=argparse.REMAINDER, help='paths to task packages')
+parser.add_argument('--profile', action='store_true', help='run profile')
+parser.add_argument('--profile-out-path', default=None, help='path to write the result of profile')
 args = parser.parse_args()
 
 ##__________________________________________________________________||
@@ -63,7 +68,7 @@ def print_logs(error):
         '{:>20}: {}'.format('os.environ', os.environ)
 
     ]
-    print('\n'.join(messages), file = sys.stderr)
+    print('\n'.join(messages), file=sys.stderr)
 
 ##__________________________________________________________________||
 def setup():
@@ -105,6 +110,38 @@ def run(package_path):
     return result
 
 ##__________________________________________________________________||
+def compose_result_path(package_path):
+
+    # e.g., package_path = 'c/d/task_00003.p.gz'
+
+    taskdir = os.path.dirname(os.path.abspath(package_path))
+    # e.g., '/a/b/c/d'
+
+    result_topdir = os.path.join(taskdir, 'results')
+    # e.g., '/a/b/c/d/results'
+
+    package_basename =  os.path.basename(package_path)
+    # e.g., 'task_00003.p.gz'
+
+    resultdir_basename = os.path.splitext(package_basename)[0]
+    resultdir_basename = os.path.splitext(resultdir_basename)[0]
+    # e.g., 'task_00003'
+
+    resultdir = os.path.join(result_topdir, resultdir_basename)
+    # e.g., '/a/b/c/d/results/task_00003'
+
+    result_path = os.path.join(resultdir, 'result.p.gz')
+    # e.g., '/a/b/c/d/results/task_00003/result.p.gz'
+
+    return result_path
+
+##__________________________________________________________________||
+def store_result(result, result_path):
+    mkdir_p(os.path.dirname(result_path))
+    with gzip.open(result_path, 'wb') as f:
+        pickle.dump(result, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+##__________________________________________________________________||
 def mkdir_p(path):
     # http://stackoverflow.com/questions/600268/mkdir-p-functionality-in-python
     try:
@@ -115,5 +152,37 @@ def mkdir_p(path):
         else: raise
 
 ##__________________________________________________________________||
+def print_profile_func(func, profile_out_path=None):
+    result = profile_func(func)
+    if profile_out_path is None:
+        print(result)
+    else:
+        with open(profile_out_path, 'w') as f:
+            f.write(result)
+
+##__________________________________________________________________||
+def profile_func(func):
+    pr = cProfile.Profile()
+    pr.enable()
+    func()
+    pr.disable()
+    sortby = 'cumulative'
+    try:
+        s = StringIO()
+        pstats.Stats(pr, stream=s).strip_dirs().sort_stats(sortby).print_stats()
+    except TypeError:
+        s = BytesIO()
+        pstats.Stats(pr, stream=s).strip_dirs().sort_stats(sortby).print_stats()
+    return s.getvalue()
+
+##__________________________________________________________________||
 if __name__ == '__main__':
-    main()
+    if args.profile:
+        print_profile_func(
+            func=main,
+            profile_out_path=args.profile_out_path
+        )
+    else:
+        main()
+
+##__________________________________________________________________||

@@ -17,7 +17,9 @@ from . import roottree
 from . import selection
 from . import heppyresult
 from . import nanoaod
+from . import datasetloop
 from . import loop
+from . import parallel
 from . import progressbar
 from . import summary
 from . import delphes
