@@ -13,10 +13,11 @@ class TaskPackageDropbox(object):
     that execute the tasks.
 
     """
-    def __init__(self, workingArea, dispatcher, sleep=5):
+    def __init__(self, workingArea, dispatcher, sleep=5, resub_increase_walltime=True):
         self.workingArea = workingArea
         self.dispatcher = dispatcher
         self.sleep = sleep
+        self.resub_increase_walltime = resub_increase_walltime
 
     def __repr__(self):
         name_value_pairs = (
@@ -100,8 +101,12 @@ class TaskPackageDropbox(object):
             logger = logging.getLogger(__name__)
             logger.warning('resubmitting {}'.format(self.workingArea.package_path(pkgidx)))
 
-            try: self.dispatcher.walltime = self.dispatcher.walltime*2
-            except AttributeError: pass
+            # For batches with a hard walltime, double the wall time to prevent job resubmission
+            # in a infinite loop if the job keeps hitting the walltime
+            if self.resub_increase_walltime:
+                try: self.dispatcher.walltime = self.dispatcher.walltime*2
+                except AttributeError: pass
+            
             runid = self.dispatcher.run(self.workingArea, pkgidx)
             self.runid_pkgidx_map[runid] = pkgidx
 
