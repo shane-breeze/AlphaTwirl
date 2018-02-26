@@ -78,7 +78,13 @@ class DatasetIntoEventBuildersSplitter(object):
         for f in files:
             if 0 <= maxEvents <= totalEvents:
                 return ret
-            n = self.eventBuilderConfigMaker.nevents_in_file(f)
+            try:
+                n = self.eventBuilderConfigMaker.nevents_in_file(f)
+            except AttributeError:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error("Problem with file: " + str(f))
+                continue
             ret.append((f, n))
             totalEvents += n
         return ret
