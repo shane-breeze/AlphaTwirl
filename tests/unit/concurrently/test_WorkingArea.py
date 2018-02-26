@@ -22,7 +22,8 @@ MockResult = collections.namedtuple('MockResult', 'name')
 def obj(tmpdir_factory):
     tmpdir = str(tmpdir_factory.mktemp(''))
     tmpdir = os.path.join(tmpdir, '_ccsp_temp')
-    return WorkingArea(dir=tmpdir, python_modules=('alphatwirl', ))
+    return WorkingArea(dir = tmpdir, python_modules = ('alphatwirl', ),
+                       exclusions = "random_junk_string")
 
 ##__________________________________________________________________||
 def test_repr(obj):
