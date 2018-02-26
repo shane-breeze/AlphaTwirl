@@ -1,15 +1,29 @@
 # Tai Sakuma <tai.sakuma@gmail.com>
 
+from alphatwirl.datasetloop import DatasetLoop
+from alphatwirl.misc.deprecation import atdeprecated
+
 ##__________________________________________________________________||
+@atdeprecated(msg='use alphatwirl.datasetloop.DatasetLoop instead.')
 class ComponentLoop(object):
 
     def __init__(self, heppyResult, reader):
-        self.reader = reader
-        self.heppyResult = heppyResult
+        self.datasetloop = DatasetLoop(
+            datasets=heppyResult.components(),
+            reader=reader
+        )
+        self.name_value_pairs = (
+            ('reader',      reader),
+            ('heppyResult', heppyResult),
+        )
+
+    def __repr__(self):
+        return '{}({})'.format(
+            self.__class__.__name__,
+            ', '.join(['{}={!r}'.format(n, v) for n, v in self.name_value_pairs]),
+        )
+
     def __call__(self):
-        self.reader.begin()
-        for component in self.heppyResult.components():
-            self.reader.read(component)
-        return self.reader.end()
+        return self.datasetloop()
 
 ##__________________________________________________________________||

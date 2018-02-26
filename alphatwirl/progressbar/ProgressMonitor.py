@@ -1,6 +1,8 @@
 # Tai Sakuma <tai.sakuma@gmail.com>
 from .ProgressReporter import ProgressReporter
 
+import alphatwirl
+
 ##__________________________________________________________________||
 class Queue(object):
 
@@ -13,11 +15,15 @@ class Queue(object):
 ##__________________________________________________________________||
 class ProgressMonitor(object):
     def __init__(self, presentation):
-        self.queue = Queue(presentation = presentation)
+        self.presentation = presentation
+        self.queue = Queue(presentation=presentation)
 
-    def begin(self): pass
+    def begin(self):
+        reporter = self.createReporter()
+        alphatwirl.progressbar._progress_reporter = reporter
 
-    def end(self): pass
+    def end(self):
+        alphatwirl.progressbar._progress_reporter = None
 
     def createReporter(self):
         reporter = ProgressReporter(queue = self.queue)

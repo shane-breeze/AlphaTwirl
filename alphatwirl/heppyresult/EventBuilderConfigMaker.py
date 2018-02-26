@@ -3,27 +3,36 @@ import os
 
 import ROOT
 
-from ..roottree import EventBuilderConfig as BaseEventBuilderConfig
 from .EventBuilderConfig import EventBuilderConfig as HeppyEventBuilderConfig
 
+from alphatwirl.misc.deprecation import atdeprecated
+
 ##__________________________________________________________________||
+@atdeprecated(msg='heppyresult has been moved to https://github.com/alphatwirl/atheppy.')
 class EventBuilderConfigMaker(object):
     def __init__(self, analyzerName, fileName, treeName):
-
         self.analyzerName = analyzerName
         self.fileName = fileName
         self.treeName = treeName
 
+    def __repr__(self):
+        name_value_pairs = (
+            ('analyzerName', self.analyzerName),
+            ('fileName', self.fileName),
+            ('treeName', self.treeName)
+        )
+        return '{}({})'.format(
+            self.__class__.__name__,
+            ', '.join(['{}={!r}'.format(n, v) for n, v in name_value_pairs]),
+        )
+
     def create_config_for(self, dataset, files, start, length):
-        base_config = BaseEventBuilderConfig(
+        config = HeppyEventBuilderConfig(
             inputPaths = files,
             treeName = self.treeName,
             maxEvents = length,
             start = start,
-            name = dataset.name # for the progress report writer
-        )
-        config = HeppyEventBuilderConfig(
-            base = base_config,
+            name = dataset.name, # for the progress report writer
             component = dataset # for scribblers
         )
         return config

@@ -1,5 +1,4 @@
 # Tai Sakuma <tai.sakuma@gmail.com>
-from ..progressbar import NullProgressMonitor
 
 ##__________________________________________________________________||
 class CommunicationChannel0(object):
@@ -16,8 +15,7 @@ class CommunicationChannel0(object):
 
     """
 
-    def __init__(self, progressMonitor=None):
-        self.progressMonitor = NullProgressMonitor() if progressMonitor is None else progressMonitor
+    def __init__(self):
         self.results = [ ]
 
     def __repr__(self):
@@ -26,13 +24,10 @@ class CommunicationChannel0(object):
         )
 
     def begin(self):
-        self.progressReporter = self.progressMonitor.createReporter()
+        pass
 
     def put(self, task, *args, **kwargs):
-        try:
-            result = task(progressReporter=self.progressReporter, *args, **kwargs)
-        except TypeError:
-            result = task(*args, **kwargs)
+        result = task(*args, **kwargs)
         self.results.append(result)
 
     def put_multiple(self, task_args_kwargs_list):
@@ -50,8 +45,10 @@ class CommunicationChannel0(object):
         del self.results[:]
         return ret
 
-    def terminate(self): pass
+    def terminate(self):
+        pass
 
-    def end(self): pass
+    def end(self):
+        pass
 
 ##__________________________________________________________________||

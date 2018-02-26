@@ -41,18 +41,7 @@ def test_put_receive(obj):
     task1 = mock.Mock(name='task1')
     task1.return_value = result1
     obj.put(task1, 123, 'ABC', A=34)
-    assert [mock.call(123, 'ABC', A=34, progressReporter=None)] == task1.call_args_list
-    assert [result1] == obj.receive()
-    obj.end()
-
-##__________________________________________________________________||
-def test_put_receive_typeerror(obj):
-    obj.begin()
-    result1 = mock.Mock(name='result1')
-    task1 = mock.Mock(name='task1')
-    task1.side_effect = [TypeError, result1]
-    obj.put(task1, 123, 'ABC', A=34)
-    assert [mock.call(123, 'ABC', A=34, progressReporter=None), mock.call(123, 'ABC', A=34)] == task1.call_args_list
+    assert [mock.call(123, 'ABC', A=34)] == task1.call_args_list
     assert [result1] == obj.receive()
     obj.end()
 
@@ -159,7 +148,7 @@ def test_put_multiple(obj):
 
     result3 = mock.Mock(name='result3')
     task3 = mock.Mock(name='task3')
-    task3.side_effect = [TypeError, result3]
+    task3.return_value = result3
 
     result4 = mock.Mock(name='result4')
     task4 = mock.Mock(name='task4')
@@ -172,10 +161,10 @@ def test_put_multiple(obj):
         dict(task=task4, args=(222, 'def')),
     ])
 
-    assert [mock.call(progressReporter=None)] == task1.call_args_list
-    assert [mock.call(123, 'ABC', A=34, progressReporter=None)] == task2.call_args_list
-    assert [mock.call(B=123, progressReporter=None), mock.call(B=123)] == task3.call_args_list
-    assert [mock.call(222, 'def', progressReporter=None)] == task4.call_args_list
+    assert [mock.call()] == task1.call_args_list
+    assert [mock.call(123, 'ABC', A=34)] == task2.call_args_list
+    assert [mock.call(B=123)] == task3.call_args_list
+    assert [mock.call(222, 'def')] == task4.call_args_list
     assert [result1, result2, result3, result4] == obj.receive()
 
     obj.end()

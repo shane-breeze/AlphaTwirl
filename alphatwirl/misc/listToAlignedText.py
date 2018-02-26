@@ -1,19 +1,13 @@
 # Tai Sakuma <tai.sakuma@gmail.com>
-
-import logging
 from .list_to_aligned_text import list_to_aligned_text
+from alphatwirl.misc.deprecation import atdeprecated
 
 ##__________________________________________________________________||
-def listToAlignedText(src, formatDict = None, leftAlignLastColumn = False):
-
-    logger = logging.getLogger(__name__)
-    logger.warning('the function "{}" is renamed  "{}". The arguments are renamed as well'.format(
-        "listToAlignedText", "list_to_aligned_text")
-    )
-
+@atdeprecated(msg='use list_to_aligned_text() instead.')
+def listToAlignedText(src, formatDict=None, leftAlignLastColumn=False):
     return list_to_aligned_text(
-        src = src,
-        format_dict = formatDict,
-        left_align_last_column = leftAlignLastColumn
+        src=src,
+        format_dict=formatDict,
+        left_align_last_column=leftAlignLastColumn
     )
 ##__________________________________________________________________||
