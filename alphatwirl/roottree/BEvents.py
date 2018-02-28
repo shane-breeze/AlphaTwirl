@@ -18,16 +18,16 @@ class BEvents(Events):
         )
 
     def __getattr__(self, name):
-        if name.startswith("__"):
-            raise AttributeError(name)
+        if name in ["branches", "buildBranch"]:
+            raise AttributeError
 
-        if name in self.__dict__["branches"]:
+        if name in self.branches:
             return self.branches[name]
 
         branch = self.buildBranch(self.tree, name)
 
         if branch is None:
-            raise AttributeError('{!r} has no attribute "{}"'.format(self, name))
+            raise AttributeError#('{!r} has no attribute "{}"'.format(self, name))
 
         self.branches[name] = branch
 
