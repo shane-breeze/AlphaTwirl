@@ -43,7 +43,7 @@ class CommunicationChannel0(object):
     def receive(self):
         ret = self.results[:]
         del self.results[:]
-        return ret
+        return ret, ""
 
     def terminate(self):
         pass

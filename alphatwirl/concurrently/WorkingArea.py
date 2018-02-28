@@ -67,20 +67,18 @@ class WorkingArea(object):
         dirname = 'task_{:05d}'.format(package_index)
         # e.g., 'task_00009'
 
-        err_path = os.path.join(self.path, 'results', dirname, 'stderr.txt')
-        out_path = os.path.join(self.path, 'results', dirname, 'stdout.txt')
+        result_path = os.path.join(self.path, 'results', dirname, 'result.p.gz')
         # e.g., '{path}/tpd_20161129_122841_HnpcmF/results/task_00009/result.p.gz'
 
         try:
-           with gzip.open(result_path, 'rb') as f:
-              result = pickle.load(f)
+            with gzip.open(result_path, 'rb') as f:
+                result = pickle.load(f)
         except (IOError, EOFError) as e:
-           logger = logging.getLogger(__name__)
-           logger.warning(e)
-           return None
+            logger = logging.getLogger(__name__)
+            logger.warning(e)
+            return None
 
-        with open(out_path, 'r') as f:
-            return f.read()
+        return result
 
     def close(self):
         self.path = None

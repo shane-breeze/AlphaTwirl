@@ -52,6 +52,11 @@ def run_tasks():
 
         result = run(package_path)
 
+        result_path = compose_result_path(package_path)
+        # e.g., '/a/b/c/d/results/task_00003/result.p.gz'
+
+        store_result(result, result_path)
+
 ##__________________________________________________________________||
 def print_logs(error):
     import socket
