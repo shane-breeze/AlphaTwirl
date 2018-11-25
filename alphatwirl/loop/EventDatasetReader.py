@@ -1,6 +1,7 @@
 # Tai Sakuma <tai.sakuma@gmail.com>
 import copy
 import itertools
+import logging
 from collections import OrderedDict
 
 from .EventLoop import EventLoop
@@ -32,6 +33,7 @@ class EventDatasetReader(object):
         self.EventLoop = EventLoop
 
         self.runids = [ ]
+        self.merged_runids = [ ]
         self.runid_dataset_map = { }
         self.dataset_runid_reader_map = OrderedDict()
 
@@ -96,6 +98,10 @@ class EventDatasetReader(object):
         return self.collector.collect(dataset_readers_list)
 
     def _merge(self, runid, reader):
+        self.merged_runids.append(runid)
+        logger = logging.getLogger(__name__)
+        logger.info("Merging reader of runid {} ({} remaining)".format(runid, len(self.runids)-len(self.merged_runids)))
+
         dataset = self.runid_dataset_map[runid]
         runid_reader_map = self.dataset_runid_reader_map[dataset]
         merge_in_order(runid_reader_map, runid, reader)
