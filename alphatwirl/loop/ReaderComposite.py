@@ -50,6 +50,8 @@ class ReaderComposite(object):
             reader.end()
 
     def merge(self, other):
+        if not hasattr(other, "readers"):
+            return
         for r, o in zip(self.readers, other.readers):
             if not hasattr(r, 'merge'):
                 continue
